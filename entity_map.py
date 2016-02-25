@@ -39,13 +39,13 @@ class discodv(database_service):
 csv_schema = (
     'source', 'table', 'column', 'value',  # loop variables
     'input_value', 'candidate', 'identifier', 'category', 'relation',
-    'prov', 'external_id', 'match_substring', 'notes',
+    'prov', 'eid', 'ms', 'notes',
 )
 
 valid_relations = ('exact', 'part of', 'subClassOf', 'located in')
 
 prov_levels = {
-    'spelling':-2,
+    'spell':-2,
     None:-1,
     'labels':0,
     'synonyms':1,
@@ -213,28 +213,52 @@ def sep_all_the_things(value):
                     vals.append(val)
     return vals
 
-def automated_dedupe(iv_candidate_identifier_prov):
-    """ operates in place and returns True if a dedupe occured """
-    #print('to dedupe', iv_candidate_identifier_prov)
-    if len(iv_candidate_identifier_prov) == 2:
-        iv_candidate_identifier_prov.sort()
-        first, second = [r[2] for r in iv_candidate_identifier_prov]
-        if first.startswith('NIFGA') and first.startswith('UBERON'):
-            iv_candidate_identifier_prov.pop(0)
-            return True
-        elif first.startswith('NCBITaxon') and first.startswith('NIFORG'):
-            iv_candidate_identifier_prov.pop()
-            return True
+def automated_dedupe(iv_candidate_identifier_cat_prov):
+    """ operates in place and returns True if a dedupe occured
+        recall that iv being none doesn't mean that the value
+        isn't different between two runs with the same id pair
+    """
+    if len(iv_candidate_identifier_cat_prov) == 2:
+        #print('automated_dedupe_', iv_candidate_identifier_cat_prov)
+        #iv_candidate_identifier_cat_prov.sort(key=lambda r: r[2])  # apparently they come sorted
+        #print('to dedupe', iv_candidate_identifier_cat_prov)
+        first, second = [r[2] for r in iv_candidate_identifier_cat_prov]
+        if first.startswith('NIFGA') and second.startswith('UBERON'):
+            iv_candidate_identifier_cat_prov.pop(0)
+        elif first.startswith('NCBITaxon') and second.startswith('NIFORG'):
+            iv_candidate_identifier_cat_prov.pop()
+
+        return True  # only return False if there wasn't a comparison
 
 no_curies = set()
-def expand_map_value(column, value, existing_prov=None, skip=(), continue_=()):
-    iv_candidate_identifier_prov = []
+value_cache = {}  # TODO consider caching output values
+def expand_map_value(column, value, split=False, existing_prov=None, skip=(), continue_=()):
+    if value in value_cache:  # this really should never happen
+        print('value cache hit')
+        return value_cache[value]  # woo memoization
+
+    iv_candidate_identifier_cat_prov = []
+
+    SKIP_SPLIT = False
     split_values = sep_all_the_things(value)
-    dedupe = True
-        
+    if not split and len(split_values) > 1:
+        SKIP_SPLIT = True
+        split_values = [value]
+
+
     for new_value in split_values:
+        dedupe = True
+        if new_value in value_cache:
+            print('new_value cache hit')
+            new_value_tups = value_cache[new_value]  # woo memoization
+            iv_candidate_identifier_cat_prov.extend(new_value_tups)
+            continue
+
         new_value_tups = []
-        if new_value == value:
+
+        if SKIP_SPLIT:
+            input_value = 'SKIP_SPLIT'  # used in 2nd pass
+        elif new_value == value:
             input_value = None
         else:
             input_value = new_value
@@ -265,7 +289,8 @@ def expand_map_value(column, value, existing_prov=None, skip=(), continue_=()):
 
             if processed_records:
                 if len(processed_records) > 1:
-                    dedupe = not automated_dedupe(processed_records)
+                    if automated_dedupe(processed_records):
+                        dedupe = False
                 new_value_tups.extend(processed_records)
                 if prov not in continue_:
                     break  # we got a match at a high level don't need the rest atm
@@ -278,12 +303,13 @@ def expand_map_value(column, value, existing_prov=None, skip=(), continue_=()):
         elif dedupe:
             automated_dedupe(new_value_tups)
 
-        iv_candidate_identifier_prov.extend(new_value_tups)
+        iv_candidate_identifier_cat_prov.extend(new_value_tups)
+        value_cache[new_value] = new_value_tups
 
-        
     #return sorted(iv_candidate_identifier_prov)
     #return iv_candidate_identifier_prov.sort()
-    return iv_candidate_identifier_prov
+    value_cache[value] = iv_candidate_identifier_cat_prov
+    return iv_candidate_identifier_cat_prov
 
 def make_csvs(ids, reup=False, remap=False):
     print(ids)
@@ -315,22 +341,22 @@ def make_csvs(ids, reup=False, remap=False):
                     for value in sorted([v for v in values if v is not None]):
                         #source, table, column, value  # all loop vars
                         if map_:
-                            external_id = map_.get(value, "WHY IS THIS MISSING?")
+                            eid = map_.get(value, "WHY IS THIS MISSING?")
                             locals_ = locals()  # DIRTY EVIL EVIL
                             row = [locals_.get(col, None) for col in csv_schema]
                             rows.append(row)
                             continue
                         else:
-                            external_id = None  # overwrite so it doesnt hang in locals
+                            eid = None  # overwrite so it doesnt hang in locals
 
                         if type(value) == str:
-                            iv_cand_id_cat_prov = expand_map_value(column, value, skip={'search'}, continue_={'labels'})
+                            iv_cand_id_cat_prov = expand_map_value(column, value, split=False, skip={'search'}, continue_={'labels'})
                         else:
                             iv_cand_id_cat_prov = ((None, value, None, None, prov_order[-1]),)  # int
 
                         for input_value, candidate, identifier, category, prov in iv_cand_id_cat_prov:
                             #candidate, identifier,  # loop vars
-                            #relation, prov, external_id, match_substring, notes
+                            #relation, prov, eid, ms, notes
                             locals_ = locals()  # DIRTY EVIL EVIL
                             row = [locals_.get(col, None) for col in csv_schema]
                             rows.append(row)
@@ -425,7 +451,7 @@ def second_pass(file):  # TODO if singletons have already been mapped then try t
                     if val != val2:
                         print('success!', val, val2)
                         #val3 = row[h['relation']]  # TODO existing!
-                    new_row = row[:h['curator_candidates']] + [val, val2, val3] + row[h['external_id']:]  # pass by ref issues
+                    new_row = row[:h['curator_candidates']] + [val, val2, val3] + row[h['eid']:]  # pass by ref issues
                     new_row[h['notes']] = 'was ' + new_row[h['notes']]  # prevent double expands
                     new_rows.append(new_row)
             else:
@@ -554,7 +580,7 @@ def reduce_cand_row(row, ci):
         'column':row[ci['column_name']],
         'value':row[ci['value']],
         'identifier':identifier,
-        'external_id':row[ci['external_id']],
+        'external_id':row[ci['eid']],
         'relation':row[ci['relation']].strip(),
         'curation_status':status,
     } 
