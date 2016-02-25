@@ -27,7 +27,7 @@ from pyontutils.scigraph_client import Refine, Vocabulary
 #from pyontutils.scr_sync import mysql_conn_helper, create_engine, inspect
 from exclude import exclude_table_prefixes, exclude_tables, exclude_columns
 
-v = Vocabulary(quiet=False)
+v = Vocabulary()#quiet=False)
 
 class discodv(database_service):
     dbname = 'disco_crawler'
@@ -38,21 +38,24 @@ class discodv(database_service):
 
 csv_schema = (
     'source', 'table', 'column', 'value',  # loop variables
-    'candidate', 'identifier', 'relation',
+    'input_value', 'candidate', 'identifier', 'category', 'relation',
     'prov', 'external_id', 'match_substring', 'notes',
 )
 
+valid_relations = ('exact', 'part of', 'subClassOf', 'located in')
+
 prov_levels = {
+    'spelling':-2,
     None:-1,
     'labels':0,
     'synonyms':1,
     'abbrevs':2,
     'acronyms':3,
-    'search':4,  # too much expansion to run initially
+    'search':4,  # too much for initial, curator with identifier == None -> search
     'curator':5,
 }
 
-prov_order = [c for c in zip(*sorted([(l, p) for p, l in prov_levels.items() if p]))][1]
+prov_order = [c for c in zip(*sorted([(l, p) for p, l in prov_levels.items() if l >= 0]))][1]
 
 prov_functions = {
     'labels':(v.findByTerm, {'searchSynonyms':False}),
@@ -72,12 +75,20 @@ prov_functions = {
     'curator':(lambda term, **args: None, {}),
 }
 
-valid_relations = ('exact', 'part of', 'subClassOf', 'located in')
-
 external_id_map = {
     'l2_nlx_151885_data_summary':('n_name', 'nelx_id'),
     'l2_nlx_151885_data_neuron':('name', 'nelx_id'),
     'l2_nif_0000_37639_onto_label':('name', 'onto_id'),
+}
+
+column_category_map = {
+    'brain_region':'anatomical entity',
+    'species':'organism',
+    'system_used':'Resource',
+    'region1':'anatomical entity',
+    'region2':'anatomical entity',
+    'region3':'anatomical entity',
+    'scientific_name':'organism',
 }
 
 def memoize(filepath, ser='json'):
@@ -181,8 +192,8 @@ def parse_notes(string):
     else:
         return 1, None
 
-separators = (',', ';', '&', 'and', 'or', '|')
-cart_seps = []
+separators = (',', ';', '&', 'and ', ' or ', '|')
+cart_seps = []  # unused now
 for r in [[s1 + ' ' + s2 for s2 in separators] for s1 in separators]:
     cart_seps.extend(r)
 
@@ -200,30 +211,79 @@ def sep_all_the_things(value):
                 if val:
                     val = val.replace('(','').replace(')','')
                     vals.append(val)
-
-
     return vals
 
-def expand_map_value(value, existing_prov=None):
-    candidate_identifier_prov = []
+def automated_dedupe(iv_candidate_identifier_prov):
+    """ operates in place and returns True if a dedupe occured """
+    #print('to dedupe', iv_candidate_identifier_prov)
+    if len(iv_candidate_identifier_prov) == 2:
+        iv_candidate_identifier_prov.sort()
+        first, second = [r[2] for r in iv_candidate_identifier_prov]
+        if first.startswith('NIFGA') and first.startswith('UBERON'):
+            iv_candidate_identifier_prov.pop(0)
+            return True
+        elif first.startswith('NCBITaxon') and first.startswith('NIFORG'):
+            iv_candidate_identifier_prov.pop()
+            return True
+
+no_curies = set()
+def expand_map_value(column, value, existing_prov=None, skip=(), continue_=()):
+    iv_candidate_identifier_prov = []
     split_values = sep_all_the_things(value)
+    dedupe = True
+        
     for new_value in split_values:
+        new_value_tups = []
+        if new_value == value:
+            input_value = None
+        else:
+            input_value = new_value
+
+        previously_matched_ids = set()
         for prov in prov_order[prov_levels[existing_prov]+1:]:
+            if prov in skip:
+                continue
             function, kwargs = prov_functions[prov]
             records = function(new_value, **kwargs)  # match
-            if records:
-                for record in records:
-                    candidate = record['labels'][0]  # FIXME
-                    identifier = record['curie']
-                    candidate_identifier_prov.append((candidate, identifier, prov))
-                break  # we got a match at a high level don't need the rest atm
-            elif prov == prov_order[-1]:
-                candidate = value
-                identifier = None
-                candidate_identifier_prov.append((candidate, identifier, prov))
+            records = records if records else []
 
+            processed_records = []
+            for record in records:
+                category = record['categories'][0] if record['categories'] else None  # FIXME
+                if column in column_category_map and \
+                   category != column_category_map[column]:
+                    continue  # don't include results with category mismatch
 
-    return candidate_identifier_prov
+                candidate = record['labels'][0]  # FIXME
+                identifier = record['curie']
+                if not identifier:
+                    no_curies.add(candidate)  # subjectless labels for culling!
+                    dedupe = False
+                elif identifier not in previously_matched_ids:
+                    previously_matched_ids.add(identifier)
+                    processed_records.append((input_value, candidate, identifier, category, prov))
+
+            if processed_records:
+                if len(processed_records) > 1:
+                    dedupe = not automated_dedupe(processed_records)
+                new_value_tups.extend(processed_records)
+                if prov not in continue_:
+                    break  # we got a match at a high level don't need the rest atm
+
+        if not new_value_tups:  # went through all the prov
+            candidate = new_value
+            identifier = None
+            category = None
+            new_value_tups.append((input_value, candidate, identifier, category, prov))
+        elif dedupe:
+            automated_dedupe(new_value_tups)
+
+        iv_candidate_identifier_prov.extend(new_value_tups)
+
+        
+    #return sorted(iv_candidate_identifier_prov)
+    #return iv_candidate_identifier_prov.sort()
+    return iv_candidate_identifier_prov
 
 def make_csvs(ids, reup=False, remap=False):
     print(ids)
@@ -264,18 +324,26 @@ def make_csvs(ids, reup=False, remap=False):
                             external_id = None  # overwrite so it doesnt hang in locals
 
                         if type(value) == str:
-                            cand_id_prov = expand_map_value(value)
+                            iv_cand_id_cat_prov = expand_map_value(column, value, skip={'search'}, continue_={'labels'})
                         else:
-                            cand_id_prov = ((value, None, prov_order[-1]),)  # int
+                            iv_cand_id_cat_prov = ((None, value, None, None, prov_order[-1]),)  # int
 
-                        for candidate, identifier, prov in cand_id_prov:
+                        for input_value, candidate, identifier, category, prov in iv_cand_id_cat_prov:
                             #candidate, identifier,  # loop vars
                             #relation, prov, external_id, match_substring, notes
                             locals_ = locals()  # DIRTY EVIL EVIL
                             row = [locals_.get(col, None) for col in csv_schema]
                             rows.append(row)
 
-                        all_values.append(value)  # simplify refine
+                        if iv_cand_id_cat_prov:
+                            del(locals_)
+                            del(input_value)
+                            del(candidate)
+                            del(identifier)
+                            del(category)
+                            del(prov)
+
+                        all_values.append(value)  # simplify refine XXX deprecated
 
             #refined = refine(all_values)  # don't need to refine directly anymore
             #for row, ref in zip(rows, refined):
@@ -576,6 +644,9 @@ def main():
 
     if args['make']:
         make_csvs(args['<identifiers>'], args['--reup'], args['--remap'])
+        if no_curies:
+            print('bad curies')
+            print(no_curies)
 
     if args['second']:
         new_files = []
