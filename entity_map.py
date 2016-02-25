@@ -27,7 +27,7 @@ from pyontutils.scigraph_client import Refine, Vocabulary
 #from pyontutils.scr_sync import mysql_conn_helper, create_engine, inspect
 from exclude import exclude_table_prefixes, exclude_tables, exclude_columns
 
-v = Vocabulary()
+v = Vocabulary(quiet=False)
 
 class discodv(database_service):
     dbname = 'disco_crawler'
@@ -35,6 +35,42 @@ class discodv(database_service):
     host = 'nif-db.crbs.ucsd.edu'
     port = 5432
     DEBUG = True
+
+csv_schema = (
+    'source', 'table', 'column', 'value',  # loop variables
+    'candidate', 'identifier', 'relation',
+    'prov', 'external_id', 'match_substring', 'notes',
+)
+
+prov_levels = {
+    None:-1,
+    'labels':0,
+    'synonyms':1,
+    'abbrevs':2,
+    'acronyms':3,
+    'search':4,  # too much expansion to run initially
+    'curator':5,
+}
+
+prov_order = [c for c in zip(*sorted([(l, p) for p, l in prov_levels.items() if p]))][1]
+
+prov_functions = {
+    'labels':(v.findByTerm, {'searchSynonyms':False}),
+    'synonyms':(v.findByTerm, {}),
+    'abbrevs':(v.findByTerm,
+                     {'searchSynonyms':False,
+                      'searchAbbreviations':True}),
+    'acronyms':(v.findByTerm,
+                {'searchSynonyms':False,
+                 'searchAcronyms':True}),
+    'search':(v.searchByTerm,
+              {'searchSynonyms':True,
+               #'searchAbbreviations':True,  # this kills the crab?
+               #'searchAcronyms':True,  # this kills the crab?
+               'limit':10}),
+    #'curator':(lambda term, **args: [{'labels':[term],'curie':None}], {}),
+    'curator':(lambda term, **args: None, {}),
+}
 
 valid_relations = ('exact', 'part of', 'subClassOf', 'located in')
 
@@ -145,10 +181,49 @@ def parse_notes(string):
     else:
         return 1, None
 
-separators = (',', ';', '&', 'and', 'or')
+separators = (',', ';', '&', 'and', 'or', '|')
 cart_seps = []
 for r in [[s1 + ' ' + s2 for s2 in separators] for s1 in separators]:
     cart_seps.extend(r)
+
+def sep_all_the_things(value):
+    seps = [sep for sep in separators if sep in value]
+    vals = [value]
+    if seps:
+        for sep in seps:
+            new_vals = []
+            for val in vals:
+                new_val = [v.strip() for v in val.split(sep)]
+                new_vals.extend(new_val)
+            vals = []
+            for val in new_vals:
+                if val:
+                    val = val.replace('(','').replace(')','')
+                    vals.append(val)
+
+
+    return vals
+
+def expand_map_value(value, existing_prov=None):
+    candidate_identifier_prov = []
+    split_values = sep_all_the_things(value)
+    for new_value in split_values:
+        for prov in prov_order[prov_levels[existing_prov]+1:]:
+            function, kwargs = prov_functions[prov]
+            records = function(new_value, **kwargs)  # match
+            if records:
+                for record in records:
+                    candidate = record['labels'][0]  # FIXME
+                    identifier = record['curie']
+                    candidate_identifier_prov.append((candidate, identifier, prov))
+                break  # we got a match at a high level don't need the rest atm
+            elif prov == prov_order[-1]:
+                candidate = value
+                identifier = None
+                candidate_identifier_prov.append((candidate, identifier, prov))
+
+
+    return candidate_identifier_prov
 
 def make_csvs(ids, reup=False, remap=False):
     print(ids)
@@ -161,11 +236,7 @@ def make_csvs(ids, reup=False, remap=False):
         with open('/tmp/%s.csv' % source, 'wt') as f:
             print('building csv for', source)
             writer = csv.writer(f, lineterminator='\n')
-            writer.writerow(['source', 'table', 'column_name',
-                             'value', 'candidates_1',
-                             'curator_candidates', 'candidates_2',
-                             'relation', 'external_id',
-                             'match_substring', 'status', 'notes'])
+            writer.writerow(csv_schema)
             for table, columns in sorted(tables.items()):
                 if any([table.startswith(prefix) for prefix in exclude_table_prefixes]):
                     continue
@@ -182,23 +253,28 @@ def make_csvs(ids, reup=False, remap=False):
                         map_ = mapping['map']
 
                     for value in sorted([v for v in values if v is not None]):
+                        #source, table, column, value  # all loop vars
                         if map_:
                             external_id = map_.get(value, "WHY IS THIS MISSING?")
+                            locals_ = locals()  # DIRTY EVIL EVIL
+                            row = [locals_.get(col, None) for col in csv_schema]
+                            rows.append(row)
+                            continue
                         else:
-                            external_id = ''
+                            external_id = None  # overwrite so it doesnt hang in locals
 
-                        refined_candidates = None
-                        curator_cands = ''
-                        relation = ''
-                        match_substring = ''
-                        status = ''
-                        notes = ''
-                        row = [source, table, column,
-                               value, value,
-                               curator_cands, curator_cands,
-                               relation, external_id,
-                               match_substring, status, notes]
-                        rows.append(row)
+                        if type(value) == str:
+                            cand_id_prov = expand_map_value(value)
+                        else:
+                            cand_id_prov = ((value, None, prov_order[-1]),)  # int
+
+                        for candidate, identifier, prov in cand_id_prov:
+                            #candidate, identifier,  # loop vars
+                            #relation, prov, external_id, match_substring, notes
+                            locals_ = locals()  # DIRTY EVIL EVIL
+                            row = [locals_.get(col, None) for col in csv_schema]
+                            rows.append(row)
+
                         all_values.append(value)  # simplify refine
 
             #refined = refine(all_values)  # don't need to refine directly anymore
