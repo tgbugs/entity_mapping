@@ -4,7 +4,7 @@ Usage:
     entity_map [ --help ]
     entity_map second third upload (<files>...)
     entity_map third upload (<files>...)
-    entity_map first
+    entity_map make [--reup --remap] [<identifiers>...]
     entity_map second (<files>...)
     entity_map third (<files>...)
     entity_map upload [--apikeyfile=APIKEYFILE] (<files>...)
@@ -12,6 +12,8 @@ Usage:
 
 Options:
     --apikeyfile=APIKEYFILE     actually do the upload using the specified api key
+    -r --reup                   redownload the data to be mapped to a local copy
+    -m --remap                  redownload the mappings for external ids
 """
 import csv
 import json
@@ -35,26 +37,12 @@ class discodv(database_service):
     DEBUG = True
 
 valid_relations = ('exact', 'part of', 'subClassOf', 'located in')
-ids = (
-    #'*MAPPING*',  # utility for name -> id in ERDs  # XXX do not use, breaks the first for loops
-    'nif_0000_00006',  # morpho
-    'nif_0000_00508',  # allen celltypes
-    'nlx_151885',  # nele
-    'nif_0000_37639',  # cil
-
-    #'nlx_154697',  # integrated connectivity FIXME must run on dv not public
-)
 
 external_id_map = {
     'l2_nlx_151885_data_summary':('n_name', 'nelx_id'),
     'l2_nlx_151885_data_neuron':('name', 'nelx_id'),
     'l2_nif_0000_37639_onto_label':('name', 'onto_id'),
 }
-
-ont_pref = (
-    'http://purl.obolibrary.org/obo/',
-    'http://ontology.neuinfo.org/NIF/',
-)
 
 def memoize(filepath, ser='json'):
     """ The wrapped function should take no arguments
@@ -68,13 +56,13 @@ def memoize(filepath, ser='json'):
         raise TypeError('Bad serialization format.')
 
     def inner(function):
-        def superinner(reup=False):
+        def superinner(reup=False, **kwargs):
             if path.exists(filepath) and not reup:
                 print('deserializing from', filepath)
                 with open(filepath, 'r' + mode) as f:
                     return deserialize(f)
             else:
-                output = function()
+                output = function(**kwargs)
                 with open(filepath, 'w' + mode) as f:
                     serialize(output, f)
                 return output
@@ -84,7 +72,7 @@ def memoize(filepath, ser='json'):
     return inner
 
 @memoize('/home/tom/files/entity_mapping/ents.json')
-def get_data():
+def get_data(ids=None):
     data = {k:{} for k in ids}
     with discodv() as dv:
         SQL = "SELECT table_name FROM information_schema.tables WHERE table_schema='public'"
@@ -107,7 +95,7 @@ def get_data():
                     #print(values)
                     columns[column] = [v if len(v) > 1 else v[0] for v in values]
 
-        print([v.keys() for v in data.values()])
+        #print([v.keys() for v in data.values()])
 
         return data
 
@@ -125,7 +113,7 @@ def get_mapping():
                 name = name.strip('"')
                 mapping[name] = id_
 
-            print(mapping)
+            #print(mapping)
             data[table_name] = {  # FIXME may need to add support for various name columns :(
                 'name_col':name_col,
                 'id_col':id_col, 
@@ -161,6 +149,64 @@ separators = (',', ';', '&', 'and', 'or')
 cart_seps = []
 for r in [[s1 + ' ' + s2 for s2 in separators] for s1 in separators]:
     cart_seps.extend(r)
+
+def make_csvs(ids, reup=False, remap=False):
+    print(ids)
+    data = get_data(reup=reup, ids=ids)
+    data_mapping = get_mapping(reup=remap)
+
+    for source, tables in sorted(data.items()):  # should probably sort?
+        all_values = []
+        rows = []
+        with open('/tmp/%s.csv' % source, 'wt') as f:
+            print('building csv for', source)
+            writer = csv.writer(f, lineterminator='\n')
+            writer.writerow(['source', 'table', 'column_name',
+                             'value', 'candidates_1',
+                             'curator_candidates', 'candidates_2',
+                             'relation', 'external_id',
+                             'match_substring', 'status', 'notes'])
+            for table, columns in sorted(tables.items()):
+                if any([table.startswith(prefix) for prefix in exclude_table_prefixes]):
+                    continue
+                elif table in exclude_tables:
+                    continue
+                mapping = data_mapping.get(table, None)
+                ex_cols = exclude_columns.get(table, None)
+                for column, values in sorted(columns.items()):
+                    if ex_cols and column in ex_cols:  # yay! I hate this construction!
+                        continue
+                    if not mapping or column != mapping['name_col']:  # FIXME ineff?
+                        map_ = None
+                    else:
+                        map_ = mapping['map']
+
+                    for value in sorted([v for v in values if v is not None]):
+                        if map_:
+                            external_id = map_.get(value, "WHY IS THIS MISSING?")
+                        else:
+                            external_id = ''
+
+                        refined_candidates = None
+                        curator_cands = ''
+                        relation = ''
+                        match_substring = ''
+                        status = ''
+                        notes = ''
+                        row = [source, table, column,
+                               value, value,
+                               curator_cands, curator_cands,
+                               relation, external_id,
+                               match_substring, status, notes]
+                        rows.append(row)
+                        all_values.append(value)  # simplify refine
+
+            #refined = refine(all_values)  # don't need to refine directly anymore
+            #for row, ref in zip(rows, refined):
+                #row[5] = ref
+            for row in rows:
+                writer.writerow(row)
+            #return
 
 def second_pass(file):  # TODO if singletons have already been mapped then try to do an autocorrect
     with open(file, 'rt') as f:
@@ -254,7 +300,6 @@ def second_pass(file):  # TODO if singletons have already been mapped then try t
 
     return output_filename
 
-
 def clean_whitespace(file):
     with open(file, 'rt') as f:
         rows = [l for l in csv.reader(f)]
@@ -324,8 +369,6 @@ def select_id(ids):
             print(id_, out['labels'][0], out['definitions'])
     #print(ranked)
     return ranked[0][0]
-
-
 
 def reduce_cand_row(row, ci):
     candidates = row[ci['candidates_1']], row[ci['candidates_2']]
@@ -451,68 +494,13 @@ def repr_insert(to_insert):
         #print('{: <20}{: <40}{: <32}{}{: <12}{}'.format(c, d, e, f, g, h))
 
 def main():
-    args = docopt(__doc__, version='entity_map .0001')
+    args = docopt(__doc__, version='entity_map .0002')
     print(args)
     files = args['<files>']
 
-    if args['first']:
-        data = get_data()#reup=True)
-        data_mapping = get_mapping()#reup=True)
-        #embed()
-        #return
+    if args['make']:
+        make_csvs(args['<identifiers>'], args['--reup'], args['--remap'])
 
-        for source, tables in sorted(data.items()):  # should probably sort?
-            all_values = []
-            rows = []
-            with open('/tmp/%s.csv' % source, 'wt') as f:
-                print('building csv for', source)
-                writer = csv.writer(f, lineterminator='\n')
-                writer.writerow(['source', 'table', 'column_name',
-                                 'value', 'candidates_1',
-                                 'curator_candidates', 'candidates_2',
-                                 'relation', 'external_id',
-                                 'match_substring', 'status', 'notes'])
-                for table, columns in sorted(tables.items()):
-                    if any([table.startswith(prefix) for prefix in exclude_table_prefixes]):
-                        continue
-                    elif table in exclude_tables:
-                        continue
-                    mapping = data_mapping.get(table, None)
-                    ex_cols = exclude_columns.get(table, None)
-                    for column, values in sorted(columns.items()):
-                        if ex_cols and column in ex_cols:  # yay! I hate this construction!
-                            continue
-                        if not mapping or column != mapping['name_col']:  # FIXME ineff?
-                            map_ = None
-                        else:
-                            map_ = mapping['map']
-
-                        for value in sorted([v for v in values if v is not None]):
-                            if map_:
-                                external_id = map_.get(value, "WHY IS THIS MISSING?")
-                            else:
-                                external_id = ''
-
-                            refined_candidates = None
-                            curator_cands = ''
-                            relation = ''
-                            match_substring = ''
-                            status = ''
-                            notes = ''
-                            row = [source, table, column,
-                                   value, value,
-                                   curator_cands, curator_cands,
-                                   relation, external_id,
-                                   match_substring, status, notes]
-                            rows.append(row)
-                            all_values.append(value)  # simplify refine
-
-                #refined = refine(all_values)  # don't need to refine directly anymore
-                #for row, ref in zip(rows, refined):
-                    #row[5] = ref
-                for row in rows:
-                    writer.writerow(row)
-                #return
     if args['second']:
         new_files = []
         for file in files:
