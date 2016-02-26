@@ -12,8 +12,9 @@ Usage:
 
 Options:
     --apikeyfile=APIKEYFILE     actually do the upload using the specified api key
-    -r --reup                   redownload the data to be mapped to a local copy
+    -h --help                   show this
     -m --remap                  redownload the mappings for external ids
+    -r --reup                   redownload the data to be mapped to a local copy
 """
 import csv
 import json
@@ -90,6 +91,18 @@ column_category_map = {
     'region3':'anatomical entity',
     'scientific_name':'organism',
 }
+
+rest_order = (
+    'source',
+    'table',
+    'column',
+    'value',
+    'identifier',
+    'external_id',
+    'relation',
+    'status',
+    #'curation_status',
+)
 
 def memoize(filepath, ser='json'):
     """ The wrapped function should take no arguments
@@ -463,7 +476,7 @@ def second_pass(file):  # TODO if singletons have already been mapped then try t
             for _ in range(count):
                 new_rows.append(row)
 
-    output_filename = file + '.2.csv'
+    output_filename = file[:-4] + '.2.csv'
     with open(output_filename, 'wt') as f:
        writer = csv.writer(f, lineterminator='\n')
        writer.writerows(new_rows)
@@ -510,7 +523,7 @@ def third_pass(file):
                 pass
                 #print('CAND NOT FOUND WTF:', row[3], row[h['candidates_1']])
 
-    output_filename = file + '.3.csv'
+    output_filename = file[:-4] + '.3.csv'
     with open(output_filename, 'wt') as f:
        writer = csv.writer(f, lineterminator='\n')
        writer.writerows(rows)
@@ -580,9 +593,10 @@ def reduce_cand_row(row, ci):
         'column':row[ci['column_name']],
         'value':row[ci['value']],
         'identifier':identifier,
-        'external_id':row[ci['eid']],
+        'external_id':row[ci['external_id']],  # FIXME eid
         'relation':row[ci['relation']].strip(),
-        'curation_status':status,
+        'status':status,  # FIXME this should go to curation status?
+        #'curation_status':status,
     } 
     return rest_insert
 
@@ -596,7 +610,6 @@ def upload_mappings(file, keyfile):
     rows = rows[1:]
     
     #print(col_names)
-    #embed()
     ci = {k:i for i, k in enumerate(col_names)}
     to_insert = []
     for i, r in enumerate(rows):
@@ -605,8 +618,10 @@ def upload_mappings(file, keyfile):
         except ValueError as e:
             print(e, 'on row', i+2)
 
-    need_to_finish = [r for r, test in zip(rows, to_insert) if not test]
+    unfinished = [r for r, test in zip(rows, to_insert) if not test]  # FIXME this probalby needs to come from the 2nd csv :/
+    finished = [r for r, test in zip(rows, to_insert) if test]
     to_insert = [r for r in to_insert if r]
+    uploaded = [rest_order] + [[r[k] for k in rest_order] for r in to_insert]
 
     #csv_cols = ('source', 'table', 'column_name','value', MANY, 'external_id', 'relation','status')
     #db_cols = ('source', 'table_name', 'col', 'value', 'identifier', 'external_id', 'relation', 'curation_status')
@@ -634,6 +649,21 @@ def upload_mappings(file, keyfile):
     #resource_fields = [c['name'] for c in insp.get_columns('resource_fields')]
     #resources = [c['name'] for c in insp.get_columns('resources')]
 
+    uploaded_filename = file[:-4] + '.uploaded.csv'
+    with open(uploaded_filename, 'wt') as f:
+       writer = csv.writer(f, lineterminator='\n')
+       writer.writerows(uploaded)
+
+    finished_filename = file[:-4] + '.finished.csv'
+    with open(finished_filename, 'wt') as f:
+       writer = csv.writer(f, lineterminator='\n')
+       writer.writerows(finished)
+
+    unfinished_filename = file[:-4] + '.unfinished.csv'
+    with open(unfinished_filename, 'wt') as f:
+       writer = csv.writer(f, lineterminator='\n')
+       writer.writerows(unfinished)
+
     if keyfile != None:
         if path.exists(keyfile):
             with open(keyfile, 'rt') as f:
@@ -642,7 +672,20 @@ def upload_mappings(file, keyfile):
             post_results = []
             for dict_ in to_insert:
                 dict_['key'] = apikey
-                result = requests.post(base_url.format(dict_), data=dict_)  # this should be ok?
+                full_url = base_url.format(**dict_)
+                dict_.pop('source')
+                dict_.pop('table')
+                dict_.pop('column')
+                dict_.pop('value')
+                if not dict_['external_id']:
+                    dict_.pop('external_id')
+                print(dict_)
+                result = requests.post(full_url, json=dict_)  # this should be ok?
+                #embed()
+                print(result)
+                print(result.request.url)
+                print(result.request.headers)
+                print(result.request.body)
                 post_results.append(result)
         else:
             raise IOError('Keyfile not found: %s' % keyfile)
@@ -650,7 +693,7 @@ def upload_mappings(file, keyfile):
         print('data that would be inserted')
         repr_insert(to_insert)
 
-    #embed()
+    embed()
     
 def repr_insert(to_insert):
     print('{column: <20}{value: <39} {identifier: <32}{relation: <12}{curation_status}{external_id}'.format(**{k:k for k in to_insert[0]}))
@@ -692,7 +735,7 @@ def main():
         if args['third']:
             files = new_files
         for file in files:
-            upload_mappings(file, args['--apikeyfile'])
+            upload_mappings(file, path.expanduser(args['--apikeyfile']))
 
     if args['clean']:
         for file in files:
