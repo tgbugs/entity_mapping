@@ -43,7 +43,7 @@ csv_schema = (
     'prov', 'eid', 'ms', 'notes',
 )
 
-valid_relations = ('exact', 'part of', 'subClassOf', 'located in')
+valid_relations = ('exact', 'part of', 'subClassOf', 'located in', 'primary')
 
 prov_levels = {
     'spell':-2,
@@ -102,13 +102,6 @@ rest_order = (
     'relation',
     'status',
     #'curation_status',
-)
-
-rest_url_params = (
-    'source',
-    'table',
-    'column',
-    'value',
 )
 
 def memoize(filepath, ser='json'):
@@ -319,6 +312,8 @@ def expand_map_value(column, value, split=False, existing_prov=None, skip=(), co
             candidate = new_value
             identifier = None
             category = None
+            if SKIP_SPLIT :
+                prov = None
             new_value_tups.append((input_value, candidate, identifier, category, prov))
         elif dedupe:
             automated_dedupe(new_value_tups)
@@ -639,7 +634,7 @@ def upload_mappings(file, keyfile):
 
     
     upload_url_prefix = 'https://stage.scicrunch.org'
-    base_url = upload_url_prefix + '/api/1/entitymapping/add/{source}/{table}/{column}/{value}'
+    base_url = upload_url_prefix + '/api/1/entitymapping/add'#/{source}/{table}/{column}/{value}'
     #identifier, external_id, relation, match_substring, status, curation_status
 
     #DB_URI = 'mysql+mysqlconnector://{user}:{password}@{host}:{port}/{db}'
@@ -704,8 +699,8 @@ def upload_mappings(file, keyfile):
     embed()
     
 def post_json(base_url, dict_):
-    full_url = base_url.format(**dict_)
-    json_data = {k:v for k, v in dict_.items() if k not in rest_url_params and v}
+    full_url = base_url.format(**dict_)  # unneeded now
+    json_data = {k:v for k, v in dict_.items() if v}
     print(json_data)
     result = requests.post(full_url, json=json_data)
     return result
