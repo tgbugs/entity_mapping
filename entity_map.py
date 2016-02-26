@@ -104,6 +104,13 @@ rest_order = (
     #'curation_status',
 )
 
+rest_url_params = (
+    'source',
+    'table',
+    'column',
+    'value',
+)
+
 def memoize(filepath, ser='json'):
     """ The wrapped function should take no arguments
         and return the object to be serialized
@@ -554,6 +561,10 @@ def select_id(ids):
     return ranked[0][0]
 
 def reduce_cand_row(row, ci):
+    source = row[ci['source']]
+    if source.startswith('nif_'):  # hack to convert nif identifiers to their canonical form
+        source = source.replace('_','-')
+
     candidates = row[ci['candidates_1']], row[ci['candidates_2']]
     identifiers = []
     if not row[ci['relation']]:
@@ -588,10 +599,10 @@ def reduce_cand_row(row, ci):
         return None  # OK for now, don't want to insert unmapped just yet?
 
     rest_insert = {
-        'source':row[ci['source']],
+        'source':source,
         'table':row[ci['table']],
         'column':row[ci['column_name']],
-        'value':row[ci['value']],
+        'value':row[ci['value']],#.replace('/','%2F'),  # quote wont save you now!  XXX turns out this doesn't fix the problem for some reason
         'identifier':identifier,
         'external_id':row[ci['external_id']],  # FIXME eid
         'relation':row[ci['relation']].strip(),
@@ -618,8 +629,8 @@ def upload_mappings(file, keyfile):
         except ValueError as e:
             print(e, 'on row', i+2)
 
-    unfinished = [r for r, test in zip(rows, to_insert) if not test]  # FIXME this probalby needs to come from the 2nd csv :/
-    finished = [r for r, test in zip(rows, to_insert) if test]
+    unfinished = [csv_schema] + [r for r, test in zip(rows, to_insert) if not test]  # FIXME this probalby needs to come from the 2nd csv :/
+    finished = [csv_schema] + [r for r, test in zip(rows, to_insert) if test]
     to_insert = [r for r in to_insert if r]
     uploaded = [rest_order] + [[r[k] for k in rest_order] for r in to_insert]
 
@@ -668,40 +679,46 @@ def upload_mappings(file, keyfile):
         if path.exists(keyfile):
             with open(keyfile, 'rt') as f:
                 apikey = f.read().strip()
+                print(apikey)
 
             post_results = []
+            failed = []
             for dict_ in to_insert:
                 dict_['key'] = apikey
-                full_url = base_url.format(**dict_)
-                dict_.pop('source')
-                dict_.pop('table')
-                dict_.pop('column')
-                dict_.pop('value')
-                if not dict_['external_id']:
-                    dict_.pop('external_id')
-                print(dict_)
-                result = requests.post(full_url, json=dict_)  # this should be ok?
-                #embed()
+                result = post_json(base_url, dict_)
                 print(result)
+                print(result.text)
                 print(result.request.url)
                 print(result.request.headers)
                 print(result.request.body)
                 post_results.append(result)
+                if not result.json()['success']:
+                    failed.append(dict_)
+
         else:
             raise IOError('Keyfile not found: %s' % keyfile)
     else:
         print('data that would be inserted')
         repr_insert(to_insert)
-
+    
     embed()
     
+def post_json(base_url, dict_):
+    full_url = base_url.format(**dict_)
+    json_data = {k:v for k, v in dict_.items() if k not in rest_url_params and v}
+    print(json_data)
+    result = requests.post(full_url, json=json_data)
+    return result
+
 def repr_insert(to_insert):
-    print('{column: <20}{value: <39} {identifier: <32}{relation: <12}{curation_status}{external_id}'.format(**{k:k for k in to_insert[0]}))
+    #print('{column: <20}{value: <39} {identifier: <32}{relation: <12}{curation_status}{external_id}'.format(**{k:k for k in to_insert[0]}))
+    print('{column: <20}{value: <39} {identifier: <32}{relation: <12}{status}{external_id}'.format(**{k:k for k in to_insert[0]}))
     for dict_ in to_insert:
         md = {k:v for k, v in dict_.items()}
         if len(md['value']) > 39:
             md['value'] = md['value'][:36] + '...'
-        print('{column: <20}{value: <39} {identifier: <32}{relation: <12}{curation_status}{external_id}'.format(**md))
+        #print('{column: <20}{value: <39} {identifier: <32}{relation: <12}{curation_status}{external_id}'.format(**md))
+        print('{column: <20}{value: <39} {identifier: <32}{relation: <12}{status}{external_id}'.format(**md))
     #for a,b,c,d,e,f,g,h in sorted(to_insert):
         #print(a, b, c, '{: <40}'.format(d), '{: <20}'.format(e), f, g, h)
         #print('{: <20}{: <40}{: <32}{}{: <12}{}'.format(c, d, e, f, g, h))
@@ -735,7 +752,10 @@ def main():
         if args['third']:
             files = new_files
         for file in files:
-            upload_mappings(file, path.expanduser(args['--apikeyfile']))
+            keypath = None
+            if args['--apikeyfile']:
+                keypath = path.expanduser(args['--apikeyfile'])
+            upload_mappings(file, keypath)
 
     if args['clean']:
         for file in files:
