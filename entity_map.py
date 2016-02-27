@@ -235,18 +235,24 @@ def automated_dedupe(iv_candidate_identifier_cat_prov):
         #iv_candidate_identifier_cat_prov.sort(key=lambda r: r[2])  # apparently they come sorted
         #print('to dedupe', iv_candidate_identifier_cat_prov)
         first, second = [r[2] for r in iv_candidate_identifier_cat_prov]
+        if first > second:
+            first, second = second, first
+            zero, one = iv_candidate_identifier_cat_prov
+            iv_candidate_identifier_cat_prov[0] = one
+            iv_candidate_identifier_cat_prov[1] = zero
+
         if first.startswith('NIFGA') and second.startswith('UBERON'):
             iv_candidate_identifier_cat_prov.pop(0)
+            return True
         elif first.startswith('NCBITaxon') and second.startswith('NIFORG'):
+            print(first, second)
             iv_candidate_identifier_cat_prov.pop()
-
-        return True  # only return False if there wasn't a comparison
+            return True
 
 no_curies = set()
 value_cache = {}
 def expand_map_value(column, value, split=False, existing_prov=None, skip=(), continue_=()):
     if value in value_cache:  # this really should never happen
-        print('value cache hit', value)
         return value_cache[value]  # woo memoization
 
     iv_candidate_identifier_cat_prov = []
@@ -261,7 +267,6 @@ def expand_map_value(column, value, split=False, existing_prov=None, skip=(), co
     for new_value in split_values:
         dedupe = True
         if new_value in value_cache:
-            print('new_value cache hit', new_value)
             new_value_tups = value_cache[new_value]  # woo memoization
             iv_candidate_identifier_cat_prov.extend(new_value_tups)
             continue
@@ -312,6 +317,7 @@ def expand_map_value(column, value, split=False, existing_prov=None, skip=(), co
             identifier = None
             category = None
             if SKIP_SPLIT :
+                candidate = None  # if no match, will deal with it in 2nd pass
                 prov = None
             new_value_tups.append((input_value, candidate, identifier, category, prov))
         elif dedupe:
@@ -399,6 +405,11 @@ def make_csvs(ids, reup=False, remap=False):
             writer.writerow(csv_schema)
             for row in rows:
                 writer.writerow(row)
+
+def second_pass(file):
+    pass
+    # expand skipsplits
+    # remove rows where identifier and no relation
 
 def second_pass(file):  # TODO if singletons have already been mapped then try to do an autocorrect
     with open(file, 'rt') as f:
