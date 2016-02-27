@@ -26,7 +26,6 @@ from docopt import docopt
 from IPython import embed
 from heatmaps.services import database_service
 from pyontutils.scigraph_client import Refine, Vocabulary
-#from pyontutils.scr_sync import mysql_conn_helper, create_engine, inspect
 from exclude import exclude_table_prefixes, exclude_tables, exclude_columns
 
 v = Vocabulary()#quiet=False)
@@ -102,7 +101,6 @@ rest_order = (
     'external_id',
     'relation',
     'status',
-    #'curation_status',
 )
 
 def memoize(filepath, ser='json'):
@@ -245,7 +243,7 @@ def automated_dedupe(iv_candidate_identifier_cat_prov):
         return True  # only return False if there wasn't a comparison
 
 no_curies = set()
-value_cache = {}  # TODO consider caching output values
+value_cache = {}
 def expand_map_value(column, value, split=False, existing_prov=None, skip=(), continue_=()):
     if value in value_cache:  # this really should never happen
         print('value cache hit', value)
@@ -326,20 +324,17 @@ def expand_map_value(column, value, split=False, existing_prov=None, skip=(), co
     return iv_candidate_identifier_cat_prov
 
 @asyncio.coroutine
-def emv(future_, input_):
+def emv(future_, input_):  # async wrapper for expand_map_value
     loop = asyncio.get_event_loop()
     futures = []
     existing_prov = None  # TODO
     for source, table, column, value, split, skip, continue_, eid in input_:
         if type(value) == str and eid is None:
-            #iv_cand_id_cat_prov = expand_map_value(column, value, split=False, skip={'search'}, continue_={'labels'})
-            print('starting future')
             future = loop.run_in_executor(None, expand_map_value, column, value, split, existing_prov, skip, continue_)
         else:
             future = asyncio.Future()
             future.set_result(((None, value, None, None, prov_order[-1]),))  # int
         futures.append(future)
-        print('appending future')
 
     print('futures compiled')
     responses = []
@@ -357,7 +352,7 @@ def make_csvs(ids, reup=False, remap=False):
     data = get_data(reup=reup, ids=ids)
     data_mapping = get_mapping(reup=remap)
 
-    split = True
+    split = False
     skip = {'search'}
     continue_ = {'labels'}
     for source, tables in sorted(data.items()):  # should probably sort?
@@ -384,47 +379,15 @@ def make_csvs(ids, reup=False, remap=False):
                     #source, table, column, value  # all loop vars
                     if map_:
                         eid = map_.get(value, "WHY IS THIS MISSING?")
-                        #locals_ = locals()  # DIRTY EVIL EVIL
                         ue_row = [source, table, column, value, split, skip, continue_, eid]
                         unexp_rows.append(ue_row)
-                        #row = [locals_.get(col, None) for col in csv_schema]
-                        #rows.append(row)
                         continue
                     else:
                         eid = None  # overwrite so it doesnt hang in locals
 
-                    """
-                    if type(value) == str:
-                        iv_cand_id_cat_prov = expand_map_value(column, value, split=False, skip={'search'}, continue_={'labels'})
-                    else:
-                        iv_cand_id_cat_prov = ((None, value, None, None, prov_order[-1]),)  # int
-                    #"""
-
                     ue_row = [source, table, column, value, split, skip, continue_, eid]
                     unexp_rows.append(ue_row)
                     
-                    """
-                    for input_value, candidate, identifier, category, prov in iv_cand_id_cat_prov:
-                        #candidate, identifier,  # loop vars
-                        #relation, prov, eid, ms, notes
-                        locals_ = locals()  # DIRTY EVIL EVIL
-                        row = [locals_.get(col, None) for col in csv_schema]
-                        rows.append(row)
-
-                    if iv_cand_id_cat_prov:
-                        del(locals_)
-                        del(input_value)
-                        del(candidate)
-                        del(identifier)
-                        del(category)
-                        del(prov)
-                    #"""
-
-                    #all_values.append(value)  # simplify refine XXX deprecated
-
-            #refined = refine(all_values)  # don't need to refine directly anymore
-            #for row, ref in zip(rows, refined):
-                #row[5] = ref
         future = asyncio.Future()
         loop = asyncio.get_event_loop()
         loop.run_until_complete(emv(future, unexp_rows))
@@ -436,7 +399,6 @@ def make_csvs(ids, reup=False, remap=False):
             writer.writerow(csv_schema)
             for row in rows:
                 writer.writerow(row)
-            #return
 
 def second_pass(file):  # TODO if singletons have already been mapped then try to do an autocorrect
     with open(file, 'rt') as f:
@@ -660,7 +622,6 @@ def upload_mappings(file, keyfile):
     col_names = rows[0]
     rows = rows[1:]
     
-    #print(col_names)
     ci = {k:i for i, k in enumerate(col_names)}
     to_insert = []
     for i, r in enumerate(rows):
@@ -674,31 +635,8 @@ def upload_mappings(file, keyfile):
     to_insert = [r for r in to_insert if r]
     uploaded = [rest_order] + [[r[k] for k in rest_order] for r in to_insert]
 
-    #csv_cols = ('source', 'table', 'column_name','value', MANY, 'external_id', 'relation','status')
-    #db_cols = ('source', 'table_name', 'col', 'value', 'identifier', 'external_id', 'relation', 'curation_status')
-
-    
     upload_url_prefix = 'https://stage.scicrunch.org'
-    base_url = upload_url_prefix + '/api/1/entitymapping/add'#/{source}/{table}/{column}/{value}'
-    #identifier, external_id, relation, match_substring, status, curation_status
-
-    #DB_URI = 'mysql+mysqlconnector://{user}:{password}@{host}:{port}/{db}'
-    #config = mysql_conn_helper('mysql5-stage.crbs.ucsd.edu', 'nif_eelg', 'nif_eelg_secure')
-    #engine = create_engine(DB_URI.format(**config))
-    #config = None  # all weakrefs should be gone by now?
-    #del(config)  # i wonder whether this actually cleans it up when using **config
-    #conn = engine
-    #sql = 'INSERT INTO entity_mapping {columns} VALUES {values};'.format(columns=db_cols, values=to_insert)
-    #print(sql)
-    #conn.execut()
-
-    
-    #insp = inspect(engine)
-    #names = [c['name'] for c in insp.get_columns('entity_mapping')]
-    #resource_columns = [c['name'] for c in insp.get_columns('resource_columns')]
-    #resource_data = [c['name'] for c in insp.get_columns('resource_data')]
-    #resource_fields = [c['name'] for c in insp.get_columns('resource_fields')]
-    #resources = [c['name'] for c in insp.get_columns('resources')]
+    base_url = upload_url_prefix + '/api/1/entitymapping/add'
 
     uploaded_filename = file[:-4] + '.uploaded.csv'
     with open(uploaded_filename, 'wt') as f:
