@@ -18,6 +18,7 @@ Options:
 """
 import csv
 import json
+import asyncio
 from os import path
 from collections import namedtuple
 import requests
@@ -247,7 +248,7 @@ no_curies = set()
 value_cache = {}  # TODO consider caching output values
 def expand_map_value(column, value, split=False, existing_prov=None, skip=(), continue_=()):
     if value in value_cache:  # this really should never happen
-        print('value cache hit')
+        print('value cache hit', value)
         return value_cache[value]  # woo memoization
 
     iv_candidate_identifier_cat_prov = []
@@ -262,7 +263,7 @@ def expand_map_value(column, value, split=False, existing_prov=None, skip=(), co
     for new_value in split_values:
         dedupe = True
         if new_value in value_cache:
-            print('new_value cache hit')
+            print('new_value cache hit', new_value)
             new_value_tups = value_cache[new_value]  # woo memoization
             iv_candidate_identifier_cat_prov.extend(new_value_tups)
             continue
@@ -321,74 +322,118 @@ def expand_map_value(column, value, split=False, existing_prov=None, skip=(), co
         iv_candidate_identifier_cat_prov.extend(new_value_tups)
         value_cache[new_value] = new_value_tups
 
-    #return sorted(iv_candidate_identifier_prov)
-    #return iv_candidate_identifier_prov.sort()
     value_cache[value] = iv_candidate_identifier_cat_prov
     return iv_candidate_identifier_cat_prov
+
+@asyncio.coroutine
+def emv(future_, input_):
+    loop = asyncio.get_event_loop()
+    futures = []
+    existing_prov = None  # TODO
+    for source, table, column, value, split, skip, continue_, eid in input_:
+        if type(value) == str and eid is None:
+            #iv_cand_id_cat_prov = expand_map_value(column, value, split=False, skip={'search'}, continue_={'labels'})
+            print('starting future')
+            future = loop.run_in_executor(None, expand_map_value, column, value, split, existing_prov, skip, continue_)
+        else:
+            future = asyncio.Future()
+            future.set_result(((None, value, None, None, prov_order[-1]),))  # int
+        futures.append(future)
+        print('appending future')
+
+    print('futures compiled')
+    responses = []
+    for (source, table, column, value, split, skip, continue_, eid), future in zip(input_, futures):
+        iv_cand_id_cat_prov = yield from future
+        for input_value, candidate, identifier, category, prov in iv_cand_id_cat_prov:
+            locals_ = locals()  # DIRTY EVIL EVIL
+            row = [locals_.get(col, None) for col in csv_schema]
+            responses.append(row)
+
+    future_.set_result(responses)
 
 def make_csvs(ids, reup=False, remap=False):
     print(ids)
     data = get_data(reup=reup, ids=ids)
     data_mapping = get_mapping(reup=remap)
 
+    split = True
+    skip = {'search'}
+    continue_ = {'labels'}
     for source, tables in sorted(data.items()):  # should probably sort?
         all_values = []
         rows = []
-        with open('/tmp/%s.csv' % source, 'wt') as f:
-            print('building csv for', source)
-            writer = csv.writer(f, lineterminator='\n')
-            writer.writerow(csv_schema)
-            for table, columns in sorted(tables.items()):
-                if any([table.startswith(prefix) for prefix in exclude_table_prefixes]):
+
+        unexp_rows = []
+        for table, columns in sorted(tables.items()):
+            if any([table.startswith(prefix) for prefix in exclude_table_prefixes]):
+                continue
+            elif table in exclude_tables:
+                continue
+            mapping = data_mapping.get(table, None)
+            ex_cols = exclude_columns.get(table, None)
+            for column, values in sorted(columns.items()):
+                if ex_cols and column in ex_cols:  # yay! I hate this construction!
                     continue
-                elif table in exclude_tables:
-                    continue
-                mapping = data_mapping.get(table, None)
-                ex_cols = exclude_columns.get(table, None)
-                for column, values in sorted(columns.items()):
-                    if ex_cols and column in ex_cols:  # yay! I hate this construction!
+                if not mapping or column != mapping['name_col']:  # FIXME ineff?
+                    map_ = None
+                else:
+                    map_ = mapping['map']
+
+                for value in sorted([v for v in values if v is not None]):
+                    #source, table, column, value  # all loop vars
+                    if map_:
+                        eid = map_.get(value, "WHY IS THIS MISSING?")
+                        #locals_ = locals()  # DIRTY EVIL EVIL
+                        ue_row = [source, table, column, value, split, skip, continue_, eid]
+                        unexp_rows.append(ue_row)
+                        #row = [locals_.get(col, None) for col in csv_schema]
+                        #rows.append(row)
                         continue
-                    if not mapping or column != mapping['name_col']:  # FIXME ineff?
-                        map_ = None
                     else:
-                        map_ = mapping['map']
+                        eid = None  # overwrite so it doesnt hang in locals
 
-                    for value in sorted([v for v in values if v is not None]):
-                        #source, table, column, value  # all loop vars
-                        if map_:
-                            eid = map_.get(value, "WHY IS THIS MISSING?")
-                            locals_ = locals()  # DIRTY EVIL EVIL
-                            row = [locals_.get(col, None) for col in csv_schema]
-                            rows.append(row)
-                            continue
-                        else:
-                            eid = None  # overwrite so it doesnt hang in locals
+                    """
+                    if type(value) == str:
+                        iv_cand_id_cat_prov = expand_map_value(column, value, split=False, skip={'search'}, continue_={'labels'})
+                    else:
+                        iv_cand_id_cat_prov = ((None, value, None, None, prov_order[-1]),)  # int
+                    #"""
 
-                        if type(value) == str:
-                            iv_cand_id_cat_prov = expand_map_value(column, value, split=False, skip={'search'}, continue_={'labels'})
-                        else:
-                            iv_cand_id_cat_prov = ((None, value, None, None, prov_order[-1]),)  # int
+                    ue_row = [source, table, column, value, split, skip, continue_, eid]
+                    unexp_rows.append(ue_row)
+                    
+                    """
+                    for input_value, candidate, identifier, category, prov in iv_cand_id_cat_prov:
+                        #candidate, identifier,  # loop vars
+                        #relation, prov, eid, ms, notes
+                        locals_ = locals()  # DIRTY EVIL EVIL
+                        row = [locals_.get(col, None) for col in csv_schema]
+                        rows.append(row)
 
-                        for input_value, candidate, identifier, category, prov in iv_cand_id_cat_prov:
-                            #candidate, identifier,  # loop vars
-                            #relation, prov, eid, ms, notes
-                            locals_ = locals()  # DIRTY EVIL EVIL
-                            row = [locals_.get(col, None) for col in csv_schema]
-                            rows.append(row)
+                    if iv_cand_id_cat_prov:
+                        del(locals_)
+                        del(input_value)
+                        del(candidate)
+                        del(identifier)
+                        del(category)
+                        del(prov)
+                    #"""
 
-                        if iv_cand_id_cat_prov:
-                            del(locals_)
-                            del(input_value)
-                            del(candidate)
-                            del(identifier)
-                            del(category)
-                            del(prov)
-
-                        all_values.append(value)  # simplify refine XXX deprecated
+                    #all_values.append(value)  # simplify refine XXX deprecated
 
             #refined = refine(all_values)  # don't need to refine directly anymore
             #for row, ref in zip(rows, refined):
                 #row[5] = ref
+        future = asyncio.Future()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(emv(future, unexp_rows))
+        rows = future.result()
+
+        with open('/tmp/%s.csv' % source, 'wt') as f:
+            print('building csv for', source)
+            writer = csv.writer(f, lineterminator='\n')
+            writer.writerow(csv_schema)
             for row in rows:
                 writer.writerow(row)
             #return
