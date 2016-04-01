@@ -77,6 +77,11 @@ prov_functions = {
     'curator':(lambda term, **args: None, {}),
 }
 
+pre_processing_funcs = {  # needs to return a list
+    'con_to':lambda value: [value] if not value.startswith('Brain map:') else [value.split('Brain site:')[-1].strip()],
+    'con_from':lambda value: [value] if not value.startswith('Brain map:') else [value.split('Brain site:')[-1].strip()],
+}
+
 external_id_map = {
     'l2_nlx_151885_data_summary':('n_name', 'nelx_id'),
     'l2_nlx_151885_data_neuron':('name', 'nelx_id'),
@@ -312,21 +317,18 @@ def expand_map_value(column, value, split=False, existing_prov=None, skip=(), co
     iv_candidate_identifier_cat_prov = []
 
     SKIP_SPLIT = False
-    split_values = sep_all_the_things(value)
-    if not split and len(split_values) > 1:
-        SKIP_SPLIT = True
-        split_values = [value]
+    if column in pre_processing_funcs:  # do custom preprocessing
+        split_values = pre_processing_funcs[column](value)
+    else:  # default preprocessing
+        split_values = sep_all_the_things(value)
+        if not split and len(split_values) > 1:
+            SKIP_SPLIT = True
+            split_values = [value]
+
 
 
     for new_value in split_values:
         dedupe = True
-        if new_value in value_cache:
-            new_value_tups = value_cache[new_value]  # woo memoization
-            iv_candidate_identifier_cat_prov.extend(new_value_tups)
-            continue
-
-        new_value_tups = []
-
         if SKIP_SPLIT:
             input_value = 'SKIP_SPLIT'  # used in 2nd pass
         elif new_value == value:
@@ -334,6 +336,23 @@ def expand_map_value(column, value, split=False, existing_prov=None, skip=(), co
         else:
             input_value = new_value
 
+        if new_value in value_cache:
+            new_value_tups = value_cache[new_value]  # woo memoization
+            check = []
+            for tup in new_value_tups:
+                if input_value != tup[0]:  # in the event that multiple values have the same new_value
+                    check.append((input_value,) + tup[1:])  # FIXME ICK
+            if check:
+                #print(new_value_tups)
+                #print(check)
+                new_value_tups = check
+                value_cache[new_value] = new_value_tups  # update to the new value since these usually go in runs
+
+            iv_candidate_identifier_cat_prov.extend(new_value_tups)
+            continue
+
+
+        new_value_tups = []
         previously_matched_ids = set()
         for prov in prov_order[prov_levels[existing_prov]+1:]:
             if prov in skip:
