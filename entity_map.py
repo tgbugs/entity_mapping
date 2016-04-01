@@ -21,6 +21,7 @@ import json
 import asyncio
 from os import path
 from collections import namedtuple
+from datetime import datetime
 import requests
 from docopt import docopt
 from IPython import embed
@@ -28,7 +29,7 @@ from heatmaps.services import database_service
 from pyontutils.scigraph_client import Refine, Vocabulary
 from exclude import exclude_table_prefixes, exclude_tables, exclude_columns
 
-v = Vocabulary()#quiet=False)
+v = Vocabulary('http://localhost:9000/scigraph')#quiet=False)
 
 class discodv(database_service):
     dbname = 'disco_crawler'
@@ -156,6 +157,37 @@ def get_data(ids=None):
 
         #print([v.keys() for v in data.values()])
 
+        return data
+
+@memoize('/home/tom/files/entity_mapping/view_ents.json')
+def get_view_data(ids=None):  # TODO consider whether there is a safe way to merge this into get_data?
+    data = {k:{} for k in ids}
+    with discodv() as dv:
+        SQL = "SELECT table_name FROM information_schema.tables WHERE table_schema='dv'"
+        #SQL = "select relname from pg_class where relkind='r' and relname !~ '^(pg_|sql_)';"
+        table_names = dv.cursor_exec(SQL)
+        for table_name, in table_names:
+            SQL = "SELECT column_name from information_schema.columns WHERE table_name=%s"
+            for id_ in ids:
+                if id_ in table_name:
+                    args = (table_name, )
+                    columns = dv.cursor_exec(SQL, args)
+                    print(columns)
+                    data[id_][table_name] = {c:{} for c, in columns}
+
+        for v in data.values():
+            for table_name, columns in v.items():
+                for column in columns:
+                    SQL = "SELECT DISTINCT(%s) FROM dv.%s" % (column, table_name)  # XXX DANGER ZONE
+                    values = dv.cursor_exec(SQL)
+                    if type(values[0][0]) == datetime:
+                        values = [(v.isoformat(),) for (v,) in values]
+                    #print(values)
+                    columns[column] = [v if len(v) > 1 else v[0] for v in values]
+
+        #print([v.keys() for v in data.values()])
+
+        #embed()
         return data
 
 @memoize('/home/tom/files/entity_mapping/mapping.json')
@@ -353,9 +385,12 @@ def emv(future_, input_):  # async wrapper for expand_map_value
 
     future_.set_result(responses)
 
-def make_csvs(ids, reup=False, remap=False):
+def make_csvs(ids, view_ids=None, reup=False, remap=False):
     print(ids)
     data = get_data(reup=reup, ids=ids)
+    if view_ids:
+        view_data = get_view_data(reup=reup, ids=view_ids)
+        data.update(view_data)
     data_mapping = get_mapping(reup=remap)
 
     split = False
@@ -718,7 +753,14 @@ def main():
     files = args['<files>']
 
     if args['make']:
-        make_csvs(args['<identifiers>'], args['--reup'], args['--remap'])
+        ids, view_ids = [], []
+        for id_ in args['<identifiers>']:
+            if id_.startswith('dv.'):
+                view_ids.append(id_.strip('dv.'))
+            else:
+                ids.append(id_)
+
+        make_csvs(ids, view_ids, args['--reup'], args['--remap'])
         if no_curies:
             print('bad curies')
             print(no_curies)

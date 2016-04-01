@@ -252,6 +252,18 @@ exclude_columns = {  # TODO cull these using the column mappings
                       'url_prefix',
                       'url_suffix',
                   ),
+                  'nlx_154697_8':(
+                      'e_uid',
+                      'link',
+                      'notes',
+                      'pmid',
+                      'reference',
+                      'ref_link',
+                      'species_id',
+                      'v_uid',
+                      'v_uuid',
+                      'v_lastmodified',
+                  ),
 
                   #'relative_file_path',  # nasty one in??
                   #'id',
