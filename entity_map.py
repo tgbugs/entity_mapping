@@ -81,6 +81,8 @@ external_id_map = {
     'l2_nlx_151885_data_summary':('n_name', 'nelx_id'),
     'l2_nlx_151885_data_neuron':('name', 'nelx_id'),
     'l2_nif_0000_37639_onto_label':('name', 'onto_id'),
+    'dv.nlx_154697_8':('con_from','con_from_id'),
+    'dv.nlx_154697_8':('con_to','con_to_id'),
 }
 
 column_category_map = {
@@ -91,6 +93,8 @@ column_category_map = {
     'region2':'anatomical entity',
     'region3':'anatomical entity',
     'scientific_name':'organism',
+    'con_from':'anatomical entity',
+    'con_to':'anatomical entity',
 }
 
 rest_order = (
@@ -205,6 +209,7 @@ def get_mapping():
                 mapping[name] = id_
 
             #print(mapping)
+            table_name = table_name.strip('dv.')  # FIXME nasty hack to support views
             data[table_name] = {  # FIXME may need to add support for various name columns :(
                 'name_col':name_col,
                 'id_col':id_col, 
@@ -276,9 +281,26 @@ def automated_dedupe(iv_candidate_identifier_cat_prov):
         if first.startswith('NIFGA') and second.startswith('UBERON'):
             iv_candidate_identifier_cat_prov.pop(0)
             return True
+        elif first.startswith('MBA') and second.startswith('UBERON'):
+            iv_candidate_identifier_cat_prov.pop(0)
+            return True
+        elif first.startswith('MBA') and second.startswith('NIFGA'):
+            iv_candidate_identifier_cat_prov.pop(1)
+            return True
         elif first.startswith('NCBITaxon') and second.startswith('NIFORG'):
             print(first, second)
             iv_candidate_identifier_cat_prov.pop()
+            return True
+    elif len(iv_candidate_identifier_cat_prov) == 3:
+        seq = [r[2] for r in iv_candidate_identifier_cat_prov]
+        prefixes = [s.split(':')[0] for s in seq]
+        base = {'MBA','NIFGA','UBERON'}
+        if base.intersection(prefixes) != base:
+            return False
+        else:
+            argsorted = sorted(range(len(seq)), key=seq.__getitem__)  # mba nifga uberon
+            iv_candidate_identifier_cat_prov.pop(argsorted[0])
+            iv_candidate_identifier_cat_prov.pop(argsorted[1])
             return True
 
 no_curies = set()
@@ -367,7 +389,7 @@ def emv(future_, input_):  # async wrapper for expand_map_value
     futures = []
     existing_prov = None  # TODO
     for source, table, column, value, split, skip, continue_, eid in input_:
-        if type(value) == str and eid is None:
+        if type(value) == str:# and eid is None:  # XXX we want both here, even if it will be slower for some stuff?
             future = loop.run_in_executor(None, expand_map_value, column, value, split, existing_prov, skip, continue_)
         else:
             future = asyncio.Future()
