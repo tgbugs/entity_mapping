@@ -49,56 +49,56 @@ id,mapped_label,mapped_identifier
 348592897,Neocortex Layer IV pyramidal cell,ILX:0050012
 349621141,Neocortex pyramidal cell layer 5,NIFCELL:sao840814183
 354190013,Neocortex pyramidal cell layer 5,NIFCELL:sao840814183
-354833767
-370351753
-382982932
-386049446
-395830185
-396608557
-396968721
-397351623
-397353539
-422738880
-464188580
-464198958
-464212183
-466245544
-466632464
-466664172
-467703703
-467782778
-468120757
-468193142
-469610831
-469704261
-469753383
-469793303
-469798159
-469801569
-469992918
-471077468
-471077857
-471085676
-471087830
-471088062
-471129934
-471141261
-471143169
-471410185
-471758398
-471767045
-471786879
-471789504
-471800189
-471819401
-473011949
-473016550
-473020156
-473540161
-473543792
-473564515
-473601979
-473611755
+354833767,Neocortex Layer IV pyramidal cell,ILX:0050012
+370351753,Neocortex Layer IV pyramidal cell,ILX:0050012
+382982932,Neocortex pyramidal cell layer 2/3,NIFCELL:sao816233655
+386049446,Neocortex Layer IV pyramidal cell,ILX:0050012
+395830185,Neocortex Layer IV pyramidal cell,ILX:0050012
+396608557,Parvalbumin neuron,NIFNEURON:nlx_cell_10061010
+396968721,Neocortex GABAergic interneuron,ILX:0050106
+397351623,Neocortex Layer IV pyramidal cell,ILX:0050012
+397353539,Neocortex Layer IV pyramidal cell,ILX:0050012
+422738880,Neocortex Layer IV pyramidal cell,ILX:0050012
+464188580,Intrinsic neuron,NIFNEURCIR:nlx_cell_1003113
+464198958,Neocortex Neuron expressing somatostatin,ILX:0050008
+464212183,Neocortex Neuron expressing somatostatin,ILX:0050008
+466245544,Parvalbumin neuron,NIFNEURON:nlx_cell_10061010
+466632464,Neocortex Layer VI untufted pyramidal cell,ILX:0050026
+466664172,Neocortex Neuron expressing somatostatin,ILX:0050008
+467703703,Neocortex pyramidal cell layer 5,NIFCELL:sao840814183
+467782778,Intrinsic neuron,NIFNEURCIR:nlx_cell_1003113
+468120757,Neocortex pyramidal cell layer 5,NIFCELL:sao840814183
+468193142,Neocortex pyramidal cell layer 5,NIFCELL:sao840814183
+469610831,Parvalbumin neuron,NIFNEURON:nlx_cell_10061010
+469704261,Neocortex Layer IV pyramidal cell,ILX:0050012
+469753383,Intrinsic neuron,NIFNEURCIR:nlx_cell_1003113
+469793303,Neocortex pyramidal cell layer 5,NIFCELL:sao840814183
+469798159,Neocortex Layer IV pyramidal cell,ILX:0050012
+469801569,Parvalbumin neuron,NIFNEURON:nlx_cell_10061010
+469992918,Parvalbumin neuron,NIFNEURON:nlx_cell_10061010
+471077468,Parvalbumin neuron,NIFNEURON:nlx_cell_10061010
+471077857,Parvalbumin neuron,NIFNEURON:nlx_cell_10061010
+471085676,Parvalbumin neuron,NIFNEURON:nlx_cell_10061010
+471087830,Parvalbumin neuron,NIFNEURON:nlx_cell_10061010
+471088062,Parvalbumin neuron,NIFNEURON:nlx_cell_10061010
+471129934,Neocortex pyramidal cell layer 5,NIFCELL:sao840814183
+471141261,Neocortex pyramidal cell layer 5,NIFCELL:sao840814183
+471143169,Neocortex pyramidal cell layer 5,NIFCELL:sao840814183
+471410185,Neocortex Layer VI untufted pyramidal cell,ILX:0050026,actually cannot tell because it was cut off maybe toward layer 4
+471758398,Neocortex pyramidal cell layer 5,NIFCELL:sao840814183
+471767045,Neocortex pyramidal cell layer 5,NIFCELL:sao840814183,clearly tufted maybe late bifucating
+471786879,Neocortex Layer VI untufted pyramidal cell,ILX:0050026,toward layer 1
+471789504,Neocortex Layer VI untufted pyramidal cell,ILX:0050026,toward layer 1
+471800189,Neocortex Layer VI untufted pyramidal cell,ILX:0050026,toward layer ??
+471819401,Neocortex Layer VI untufted pyramidal cell,ILX:0050026,toward layer ??
+473011949,Neocortex Neuron expressing somatostatin,ILX:0050008
+473016550,Neocortex Neuron expressing somatostatin,ILX:0050008
+473020156,Neocortex Layer IV pyramidal cell,ILX:0050012,need help with these are they spiny stellate cells?
+473540161,Neocortex Neuron expressing somatostatin,ILX:0050008
+473543792,Neocortex Neuron expressing somatostatin,ILX:0050008
+473564515,Neocortex Neuron expressing somatostatin,ILX:0050008
+473601979,Neocortex Layer IV pyramidal cell,ILX:0050012,need help with these are they spiny stellate cells?
+473611755,Neocortex pyramidal cell layer 2/3,NIFCELL:sao816233655,rorb possibly misclassified as l2/3?
 473943881
 474267418
 474626527
