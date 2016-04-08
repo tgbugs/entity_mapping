@@ -99,56 +99,56 @@ id,mapped_label,mapped_identifier
 473564515,Neocortex Neuron expressing somatostatin,ILX:0050008
 473601979,Neocortex Layer IV pyramidal cell,ILX:0050012,need help with these are they spiny stellate cells?
 473611755,Neocortex pyramidal cell layer 2/3,NIFCELL:sao816233655,rorb possibly misclassified as l2/3?
-473943881
-474267418
-474626527
-474660482
-475049291
-475057898
-475068599
-475202388
-475459689
-475515168
-475517090
-475542743
-475549334
-475585413
-475585451
-475586130
-475622680
-475622793
-475623964
-475625477
-475744706
-475888653
-476048909
-476049169
-476054887
-476086391
-476087653
-476104386
-476126528
-476131588
-476216637
-476218657
-476263004
-476451456
-476455864
-476457450
-476616076
-476686112
-476754635
-477127614
-477135941
-478058328
-478107198
-478110866
-478396248
-478497530
-478499902
-478586295
-478793814
-478828646
+473943881,Intrinsic neuron,NIFNEURCIR:nlx_cell_1003113
+474267418,Intrinsic neuron,NIFNEURCIR:nlx_cell_1003113
+474626527,Intrinsic neuron,NIFNEURCIR:nlx_cell_1003113
+474660482,Intrinsic neuron,NIFNEURCIR:nlx_cell_1003113,weird apical styel dendrite that is not marked as apical
+475049291,Neocortex Neuron expressing somatostatin,ILX:0050008
+475057898,Neocortex Neuron expressing somatostatin,ILX:0050008
+475068599,Neocortex Neuron expressing somatostatin,ILX:0050008
+475202388,Neocortex Neuron expressing somatostatin,ILX:0050008
+475459689,Neocortex Layer IV pyramidal cell,ILX:0050012,need help with these are they spiny stellate cells?
+475515168,Neocortex Neuron expressing somatostatin,ILX:0050008
+475517090,Neocortex Neuron expressing somatostatin,ILX:0050008
+475542743,Neocortex Neuron expressing somatostatin,ILX:0050008
+475549334,Parvalbumin neuron,NIFNEURON:nlx_cell_10061010
+475585413,Intrinsic neuron,NIFNEURCIR:nlx_cell_1003113,actually don't know this for sure since no axon shown
+475585451,Intrinsic neuron,NIFNEURCIR:nlx_cell_1003113,actually don't know this for sure since no axon shown
+475586130,Intrinsic neuron,NIFNEURCIR:nlx_cell_1003113,actually don't know this for sure since no axon shown
+475622680,Intrinsic neuron,NIFNEURCIR:nlx_cell_1003113,actually don't know this for sure since no axon shown
+475622793,Intrinsic neuron,NIFNEURCIR:nlx_cell_1003113,actually don't know this for sure since no axon shown
+475623964,Intrinsic neuron,NIFNEURCIR:nlx_cell_1003113
+475625477,Intrinsic neuron,NIFNEURCIR:nlx_cell_1003113,actually don't know this for sure since no axon shown
+475744706,Neocortex Layer VI untufted pyramidal cell,ILX:0050026,toward layer 1
+475888653,Parvalbumin neuron,NIFNEURON:nlx_cell_10061010
+476048909,Neocortex pyramidal cell layer 5,NIFCELL:sao840814183
+476049169,Neocortex pyramidal cell layer 5,NIFCELL:sao840814183
+476054887,Neocortex Layer IV pyramidal cell,ILX:0050012,need help with these are they spiny stellate cells?
+476086391,Neocortex pyramidal cell layer 2/3,NIFCELL:sao816233655
+476087653,Neocortex pyramidal cell layer 2/3,NIFCELL:sao816233655
+476104386,Neocortex Neuron expressing somatostatin,ILX:0050008
+476126528,Neocortex Layer IV pyramidal cell,ILX:0050012,need help with these are they spiny stellate cells?
+476131588,Neocortex pyramidal cell layer 5,NIFCELL:sao840814183
+476216637,Neocortex pyramidal cell layer 5,NIFCELL:sao840814183
+476218657,Neocortex Layer IV pyramidal cell,ILX:0050012,need help with these are they spiny stellate cells?
+476263004,Neocortex pyramidal cell layer 5,NIFCELL:sao840814183
+476451456,Neocortex Layer IV pyramidal cell,ILX:0050012,need help with these are they spiny stellate cells?
+476455864,Neocortex Layer IV pyramidal cell,ILX:0050012,need help with these are they spiny stellate cells?
+476457450,Neocortex Layer IV pyramidal cell,ILX:0050012,need help with these are they spiny stellate cells?
+476616076,Neocortex Layer IV pyramidal cell,ILX:0050012,need help with these are they spiny stellate cells?
+476686112,Neocortex Neuron expressing somatostatin,ILX:0050008
+476754635,Neocortex Neuron expressing somatostatin,ILX:0050008
+477127614,Neocortex pyramidal cell layer 2/3,NIFCELL:sao816233655
+477135941,Neocortex Layer IV pyramidal cell,ILX:0050012,need help with these are they spiny stellate cells?
+478058328,Parvalbumin neuron,NIFNEURON:nlx_cell_10061010
+478107198,Intrinsic neuron,NIFNEURCIR:nlx_cell_1003113,actually don't know this for sure since no axon shown
+478110866,Intrinsic neuron,NIFNEURCIR:nlx_cell_1003113,weird apical styel dendrite that is not marked as apical
+478396248,Neocortex Neuron expressing somatostatin,ILX:0050008
+478497530,Neocortex Layer IV pyramidal cell,ILX:0050012,need help with these are they spiny stellate cells?
+478499902,Neocortex pyramidal cell layer 2/3,NIFCELL:sao816233655
+478586295,Neocortex pyramidal cell layer 5,NIFCELL:sao840814183
+478793814,Parvalbumin neuron,NIFNEURON:nlx_cell_10061010
+478828646,Parvalbumin neuron,NIFNEURON:nlx_cell_10061010
 478888052
 478888083
 478892782
