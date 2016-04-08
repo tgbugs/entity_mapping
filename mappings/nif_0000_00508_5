@@ -199,18 +199,18 @@ id,mapped_label,mapped_identifier
 485905391,Intrinsic neuron,NIFNEURCIR:nlx_cell_1003113,ntsr1 which is usually though to mark subcortically projecting l5/6
 485909730,Neocortex Layer IV pyramidal cell,ILX:0050012
 485912047,Neocortex pyramidal cell layer 2/3,NIFCELL:sao816233655
-486052980
-486110216
-486111903
-486146717
-486502127
-486783119
-487099387
-487176969
-487601493
-487661754
-487664663
-487667205
-488501071
-488674910
-488680211
+486052980,Neocortex pyramidal cell layer 5,NIFCELL:sao840814183
+486110216,Neocortex pyramidal cell layer 5,NIFCELL:sao840814183
+486111903,Neocortex pyramidal cell layer 5,NIFCELL:sao840814183
+486146717,Neocortex Layer IV pyramidal cell,ILX:0050012
+486502127,Neocortex Layer IV pyramidal cell,ILX:0050012
+486783119,Parvalbumin neuron,NIFNEURON:nlx_cell_10061010
+487099387,Intrinsic neuron,NIFNEURCIR:nlx_cell_1003113
+487176969,Intrinsic neuron,NIFNEURCIR:nlx_cell_1003113,actually don't know this for sure since no axon shown
+487601493,Neocortex Layer IV pyramidal cell,ILX:0050012
+487661754,Neocortex pyramidal cell layer 2/3,NIFCELL:sao816233655
+487664663,Neocortex pyramidal cell layer 5,NIFCELL:sao840814183
+487667205,Parvalbumin neuron,NIFNEURON:nlx_cell_10061010
+488501071,Parvalbumin neuron,NIFNEURON:nlx_cell_10061010
+488674910,Intrinsic neuron,NIFNEURCIR:nlx_cell_1003113,ntsr1 which is usually though to mark subcortically projecting l5/6
+488680211,Neocortex Layer VI untufted pyramidal cell,ILX:0050026
