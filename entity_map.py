@@ -29,7 +29,7 @@ from heatmaps.services import database_service
 from pyontutils.scigraph_client import Refine, Vocabulary
 from exclude import exclude_table_prefixes, exclude_tables, exclude_columns
 
-v = Vocabulary('http://localhost:9000/scigraph')#quiet=False)
+v = Vocabulary()#'http://localhost:9000/scigraph')#quiet=False)
 
 class discodv(database_service):
     dbname = 'disco_crawler'
