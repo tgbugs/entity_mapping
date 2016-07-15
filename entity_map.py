@@ -41,7 +41,7 @@ class discodv(database_service):
 csv_schema = (
     'source', 'table', 'column', 'value',  # loop variables
     'input_value', 'candidate', 'identifier', 'category', 'relation',
-    'prov', 'eid', 'ms', 'notes',
+    'prov', 'eid', 'ms', 'notes',  # eid => existing id, 
 )
 
 valid_relations = ('exact', 'part of', 'subClassOf', 'located in', 'primary')
@@ -69,6 +69,24 @@ prov_functions = {
                 {'searchSynonyms':False,
                  'searchAcronyms':True}),
     'search':(v.searchByTerm,
+              {'searchSynonyms':True,
+               #'searchAbbreviations':True,  # this kills the crab?
+               #'searchAcronyms':True,  # this kills the crab?
+               'limit':10}),
+    #'curator':(lambda term, **args: [{'labels':[term],'curie':None}], {}),
+    'curator':(lambda term, **args: None, {}),
+}
+def noop(term, **kwargs): return None
+prov_functions = {
+    'labels':(noop, {'searchSynonyms':False}),
+    'synonyms':(noop, {}),
+    'abbrevs':(noop,
+                     {'searchSynonyms':False,
+                      'searchAbbreviations':True}),
+    'acronyms':(noop,
+                {'searchSynonyms':False,
+                 'searchAcronyms':True}),
+    'search':(noop,
               {'searchSynonyms':True,
                #'searchAbbreviations':True,  # this kills the crab?
                #'searchAcronyms':True,  # this kills the crab?
@@ -140,7 +158,7 @@ def memoize(filepath, ser='json'):
 
     return inner
 
-@memoize('/home/tom/files/entity_mapping/ents.json')
+@memoize('/home/tom/files/entity_mapping/ents.json')  # FIXME
 def get_data(ids=None):
     data = {k:{} for k in ids}
     with discodv() as dv:
@@ -168,7 +186,7 @@ def get_data(ids=None):
 
         return data
 
-@memoize('/home/tom/files/entity_mapping/view_ents.json')
+@memoize('C:/Users/becca/git/entity_mapping/view_ents.json')  # FIXME
 def get_view_data(ids=None):  # TODO consider whether there is a safe way to merge this into get_data?
     data = {k:{} for k in ids}
     with discodv() as dv:
@@ -199,7 +217,7 @@ def get_view_data(ids=None):  # TODO consider whether there is a safe way to mer
         #embed()
         return data
 
-@memoize('/home/tom/files/entity_mapping/mapping.json')
+@memoize('/home/tom/files/entity_mapping/mapping.json')  # FIXME
 def get_mapping():
     data = {}  # put this here to avoid issues @ v in data.values() :(
     with discodv() as dv:
@@ -475,7 +493,7 @@ def make_csvs(ids, view_ids=None, reup=False, remap=False):
         loop.run_until_complete(emv(future, unexp_rows))
         rows = future.result()
 
-        with open('/tmp/%s.csv' % source, 'wt') as f:
+        with open('/tmp/%s.csv' % source, 'wt') as f:  # FIXME
             print('building csv for', source)
             writer = csv.writer(f, lineterminator='\n')
             writer.writerow(csv_schema)
