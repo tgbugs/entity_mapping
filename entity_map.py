@@ -43,7 +43,7 @@ csv_schema = (
     'input_value', 'candidate', 'identifier', 'category', 'relation',
     'prov', 'eid', 'ms', 'notes',  # eid => existing id, 
 )
-
+#test
 valid_relations = ('exact', 'part of', 'subClassOf', 'located in', 'primary')
 
 prov_levels = {
