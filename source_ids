@@ -2,4 +2,4 @@ nif_0000_00006  # morpho
 nif_0000_00508  # allen (must be pruned to just celltypes)
 nlx_151885      # neuroelectro
 nif_0000_37639  # cell image library
-#nlx_154697      # integrated connectivity FIXME must run on dv not public
+dv.nlx_154697_8      # integrated connectivity FIXME must run on dv not public
