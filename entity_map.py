@@ -77,7 +77,7 @@ prov_functions = {
     'curator':(lambda term, **args: None, {}),
 }
 def noop(term, **kwargs): return None
-prov_functions = {
+_prov_functions = {
     'labels':(noop, {'searchSynonyms':False}),
     'synonyms':(noop, {}),
     'abbrevs':(noop,
@@ -453,7 +453,8 @@ def make_csvs(ids, view_ids=None, reup=False, remap=False):
     data_mapping = get_mapping(reup=remap)
 
     split = False
-    skip = {'search'}
+    #skip = {'search'}
+    skip = {}  #
     continue_ = {'labels'}
     for source, tables in sorted(data.items()):  # should probably sort?
         all_values = []
@@ -492,6 +493,14 @@ def make_csvs(ids, view_ids=None, reup=False, remap=False):
         loop = asyncio.get_event_loop()
         loop.run_until_complete(emv(future, unexp_rows))
         rows = future.result()
+
+        # troy code goes here
+        # filter rows into 4 spreadsheets
+        #   1) curator level of prov with no eid match
+        #   2) search level of prov
+        #   3) multiple match for labels, syns, acros, abbrevs
+        #   4) mapping exists (eid) OR single match for labels, syns, acros, abbrevs
+        # test on nif_0000_00006, list of ids is in source_ids
 
         with open('/tmp/%s.csv' % source, 'wt') as f:  # FIXME
             print('building csv for', source)
