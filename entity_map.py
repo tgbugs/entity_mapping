@@ -332,6 +332,7 @@ def automated_dedupe(iv_candidate_identifier_cat_prov):
 no_curies = set()
 value_cache = {}
 def expand_map_value(column, value, split=False, existing_prov=None, skip=(), continue_=()):
+    continue_until = {'search'}
     if value in value_cache:  # this really should never happen
         return value_cache[value]  # woo memoization
 
@@ -345,7 +346,6 @@ def expand_map_value(column, value, split=False, existing_prov=None, skip=(), co
         if not split and len(split_values) > 1:
             SKIP_SPLIT = True
             split_values = [value]
-
 
 
     for new_value in split_values:
@@ -392,8 +392,9 @@ def expand_map_value(column, value, split=False, existing_prov=None, skip=(), co
                 if record['labels']:
                     candidate = record['labels'][0]
                 else:
+                    candidate = ''
                     print("WARNING: found record without label!", record)
-                    continue
+
                 identifier = record['curie']
                 if not identifier:
                     no_curies.add(candidate)  # subjectless labels for culling!
@@ -409,6 +410,8 @@ def expand_map_value(column, value, split=False, existing_prov=None, skip=(), co
                 new_value_tups.extend(processed_records)
                 if prov not in continue_:
                     break  # we got a match at a high level don't need the rest atm
+            elif new_value_tups and prov_order[prov_levels[prov] + 1] in continue_until:
+                break
 
         if not new_value_tups:  # went through all the prov
             candidate = new_value
@@ -501,12 +504,13 @@ def make_csvs(ids, view_ids=None, reup=False, remap=False):
         loop.run_until_complete(emv(future, unexp_rows))
         rows = future.result()
 
+        #embed()
         # troy code goes here
         # filter rows into 4 spreadsheets
         #   1) curator level of prov with no eid match
         #   2) search level of prov
-        #   3) multiple match for labels, syns, acros, abbrevs
-        #   4) mapping exists (eid) OR single match for labels, syns, acros, abbrevs
+        #   3) mapping exists (eid) OR single match for labels, syns, acros, abbrevs
+        #   4) multiple match for labels, syns, acros, abbrevs
         # test on nif_0000_00006, list of ids is in source_ids
 
         with open('/tmp/%s.csv' % source, 'wt') as f:  # FIXME
