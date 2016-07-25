@@ -31,6 +31,8 @@ from exclude import exclude_table_prefixes, exclude_tables, exclude_columns
 
 v = Vocabulary()#'http://localhost:9000/scigraph')#quiet=False)
 
+MEMOIZE_PATH = '/home/tom/files/entity_mapping/'  # XXX set this to match your system
+
 class discodv(database_service):
     dbname = 'disco_crawler'
     user = 'disco_reader'
@@ -131,10 +133,11 @@ rest_order = (
     'status',
 )
 
-def memoize(filepath, ser='json'):
+def memoize(filename, ser='json'):
     """ The wrapped function should take no arguments
         and return the object to be serialized
     """
+    filepath = path.join(MEMOIZE_PATH, filename)
     if ser == 'json':
         serialize = json.dump
         deserialize = json.load
@@ -158,7 +161,7 @@ def memoize(filepath, ser='json'):
 
     return inner
 
-@memoize('/home/tom/files/entity_mapping/ents.json')  # FIXME
+@memoize('ents.json')  # FIXME
 def get_data(ids=None):
     data = {k:{} for k in ids}
     with discodv() as dv:
@@ -186,7 +189,7 @@ def get_data(ids=None):
 
         return data
 
-@memoize('C:/Users/becca/git/entity_mapping/view_ents.json')  # FIXME
+@memoize('view_ents.json')  # FIXME
 def get_view_data(ids=None):  # TODO consider whether there is a safe way to merge this into get_data?
     data = {k:{} for k in ids}
     with discodv() as dv:
@@ -217,7 +220,7 @@ def get_view_data(ids=None):  # TODO consider whether there is a safe way to mer
         #embed()
         return data
 
-@memoize('/home/tom/files/entity_mapping/mapping.json')  # FIXME
+@memoize('mapping.json')  # FIXME
 def get_mapping():
     data = {}  # put this here to avoid issues @ v in data.values() :(
     with discodv() as dv:
@@ -386,7 +389,11 @@ def expand_map_value(column, value, split=False, existing_prov=None, skip=(), co
                    category != column_category_map[column]:
                     continue  # don't include results with category mismatch
 
-                candidate = record['labels'][0]  # FIXME
+                if record['labels']:
+                    candidate = record['labels'][0]
+                else:
+                    print("WARNING: found record without label!", record)
+                    continue
                 identifier = record['curie']
                 if not identifier:
                     no_curies.add(candidate)  # subjectless labels for culling!
