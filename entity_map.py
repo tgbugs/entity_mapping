@@ -33,7 +33,7 @@ v = Vocabulary()#'http://localhost:9000/scigraph')#quiet=False)
 
 class discodv(database_service):
     dbname = 'disco_crawler'
-    user = 'discouser'
+    user = 'disco_reader'
     host = 'nif-db.crbs.ucsd.edu'
     port = 5432
     DEBUG = True
