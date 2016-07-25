@@ -31,7 +31,7 @@ from exclude import exclude_table_prefixes, exclude_tables, exclude_columns
 
 v = Vocabulary()#'http://localhost:9000/scigraph')#quiet=False)
 
-MEMOIZE_PATH = '/home/tom/files/entity_mapping/'  # XXX set this to match your system
+MEMOIZE_PATH = '/home/becca/git/entity_mapping/'  # XXX set this to match your system
 
 class discodv(database_service):
     dbname = 'disco_crawler'
