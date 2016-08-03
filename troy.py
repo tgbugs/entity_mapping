@@ -5,15 +5,17 @@ import mappings
 import numpy
 
 """
-    TODO
-    get a rough draft for website to work
-    ask tom to varify org
+    X 1) curator level of prov with no eid match //organize
+    X 2) search level of prov //actually search prov
+    3) mapping exists (eid) OR single match for labels, syns, acros, abbrevs
+    4) multiple match for labels, syns, acros, abbrevs
 """
 
 """
     Organizes a csv file to extract data easily
 """
 
+folder = '/Users/love/git/troy_entity_mapping/'
 class csv_book():
 
     def __init__(self, filename):
@@ -49,14 +51,11 @@ class csv_book():
             'input_value':4, 'candidate':5, 'identifier':6, 'category':7, 'relation':8,
             'prov':9, 'eid':10, 'ms':11, 'notes':12 # eid => existing id,
         }
-        self.provLabelsList = []
-        self.provSynonymsList = []
-        self.provCuratorList = []
-        self.provAbbrevsList = []
+        self.provMultiList = []
+        self.provSingleList = []
         self.provSearchList = []
-        self.provAcronymsList = []
-        self.other = []
-        self.provList = ['labels', 'synonyms', 'curator', 'abbrevs', 'search', 'acronyms', 'other']
+        self.provNoEidList = []
+        self.provList = ['no_eid', 'search', 'one_match_or_has_eid', 'multi_match']
 
     def csv_row(self, row_location):
         return self.rows[row_location]
@@ -88,97 +87,107 @@ class csv_book():
         return self.data[row][schema_location]
 
     def makeCsv(self, newFileName,raw_rows):
-        with open ('/Users/love/git/troy_entity_mapping/entity_mapping/' + newFileName + '.csv', 'w') as file:
+        with open (folder + 'entity_mapping/' + newFileName + '.csv', 'w') as file:
             wr = csv.writer(file)
             for rows in raw_rows:
                 wr.writerow(rows)
         print ("done making", newFileName+".csv file")
 
-    def makeProvCsvRowList(self, row_number, prov_value):
+    def addToNoEidList(self, row_number):
         row = self.csv_row(row_number)
-        if prov_value == "curator": #check point
-            self.provCuratorList.append(row)
-        elif prov_value == "labels":
-            self.provLabelsList.append(row)
-        elif prov_value == "abbrevs":
-            self.provAbbrevsList.append(row)
-        elif prov_value == "synonyms":
-            self.provSynonymsList.append(row)
-        elif prov_value == "search":
-            self.provSearchList.append(row)
-        elif prov_value == "acronyms":
-            self.provAcronymsList.append(row)
-        elif prov_value == "other":
-            self.other.append(row)
-        else:
-            print("not a prov value")
+        self.provNoEidList.append(row)
 
-    def makeProvCsv(self):
+    def printNoEidList(self):
+        print(self.provNoEidList)
+
+    def addToSearchList(self, row_number):
+        row = self.csv_row(row_number)
+        self.provSearchList.append(row)
+
+    def addToSingleList(self, row_number):
+        row = self.csv_row(row_number)
+        self.provSingleList.append(row)
+
+    def addToMultiList(self, row_number):
+        row = self.csv_row(row_number)
+        self.provMultiList.append(row)
+
+    def printMultiMatch(self):
+        print(self.provMultiList)
+
+    def makeCsvFromList(self):
         for provTypes in self.provList:
-            with open ('/Users/love/git/troy_entity_mapping/entity_mapping/' + provTypes + '.csv', 'w') as file:
+            with open (folder + 'entity_mapping/' + provTypes + '.csv', 'w') as file:
                 wr = csv.writer(file)
-                if provTypes == "curator":  # check point
-                    for rows in self.provCuratorList:
-                        wr.writerow(rows)
-                elif provTypes == "labels":  # check point
-                    for rows in self.provLabelsList:
-                        wr.writerow(rows)
-                elif provTypes == "synonyms":  # check point
-                    for rows in self.provSynonymsList:
-                        wr.writerow(rows)
-                elif provTypes == "abbrevs":  # check point
-                    for rows in self.provAbbrevsList:
-                        wr.writerow(rows)
-                elif provTypes == "search":
+                if provTypes == 'search':
                     for rows in self.provSearchList:
                         wr.writerow(rows)
-                elif provTypes == "acronyms":
-                    for rows in self.provAcronymsList:
+                elif provTypes == 'no_eid':
+                    for rows in self.provNoEidList:
+                        wr.writerow(rows)
+                elif provTypes == 'one_match_or_has_eid':
+                    for rows in self.provSingleList:
+                        wr.writerow(rows)
+                elif provTypes == 'multi_match':
+                    for rows in self.provMultiList:
                         wr.writerow(rows)
                 else:
-                    for rows in self.other:
-                        wr.writerow(rows)
+                    print("Something went wrong making ", provTypes)
+                    break
             print ("done making", provTypes+".csv file")
 
 #source,table,column,value,input_value,candidate,identifier,fma_id,category,relation,prov,eid,ms,notes
-book_nlx_154697_8_fma = csv_book('/Users/love/git/troy_entity_mapping/entity_mapping/mappings/nlx_154697_8_fma.csv')
+book_nlx_154697_8_fma = csv_book(folder + 'entity_mapping/mappings/nlx_154697_8_fma.csv')
 #id,mapped_label,mapped_identifier
-book_nif_0000_00508_5 = csv_book('/Users/love/git/troy_entity_mapping/entity_mapping/mappings/nif_0000_00508_5')
+book_nif_0000_00508_5 = csv_book(folder + 'entity_mapping/mappings/nif_0000_00508_5')
 #
-book_coco_uber_match = csv_book('/Users/love/git/troy_entity_mapping/entity_mapping/mappings/coco_uber_match.csv')
+book_coco_uber_match = csv_book(folder + 'entity_mapping/mappings/coco_uber_match.csv')
 #
-book_coco_uber_search = csv_book('/Users/love/git/troy_entity_mapping/entity_mapping/mappings/coco_uber_search.csv')
+book_coco_uber_search = csv_book(folder + 'entity_mapping/mappings/coco_uber_search.csv')
 #
-book_uberon_nervous = csv_book('/Users/love/git/troy_entity_mapping/entity_mapping/mappings/uberon-nervous')
+book_uberon_nervous = csv_book(folder + 'entity_mapping/mappings/uberon-nervous')
 
-eidList = []
+noeidList = []
+counter = 0
 
 """main"""
 for current_row_number in range(book_nlx_154697_8_fma.file_length):
     eid = book_nlx_154697_8_fma.cell_from_index(current_row_number, book_nlx_154697_8_fma.schema_location("eid"))
     prov = book_nlx_154697_8_fma.cell_from_index(current_row_number, book_nlx_154697_8_fma.schema_location("prov"))
-    if eid != None and len(eid) > 1 :
-        eidList.append(book_nlx_154697_8_fma.csv_row(current_row_number))
+    if eid == None or len(eid) < 1:
+        book_nlx_154697_8_fma.addToNoEidList(current_row_number)
+
     else:
-        book_nlx_154697_8_fma.makeProvCsvRowList(current_row_number, prov)
+        book_nlx_154697_8_fma.addToSearchList(current_row_number)
+        source = book_nlx_154697_8_fma.schema_location("source")
+        table = book_nlx_154697_8_fma.schema_location("table")
+        column = book_nlx_154697_8_fma.schema_location("column")
+        value = book_nlx_154697_8_fma.schema_location("value")
+        crow = current_row_number
 
-book_nlx_154697_8_fma.makeCsv('eids_exist', eidList)
-book_nlx_154697_8_fma.makeProvCsv()
+        if book_nlx_154697_8_fma.cell_from_index(crow, source) == book_nlx_154697_8_fma.cell_from_index(crow + 1, source):
+            if book_nlx_154697_8_fma.cell_from_index(crow, table) == book_nlx_154697_8_fma.cell_from_index(crow + 1, table):
+                if book_nlx_154697_8_fma.cell_from_index(crow, column) == book_nlx_154697_8_fma.cell_from_index(crow + 1, column):
+                    #print (book_nlx_154697_8_fma.cell_from_index(crow, value).lower(), book_nlx_154697_8_fma.cell_from_index(crow + 1, value).lower())
+                    if book_nlx_154697_8_fma.cell_from_index(crow, value).lower().strip() == book_nlx_154697_8_fma.cell_from_index(crow + 1, value).lower().strip():
+                        book_nlx_154697_8_fma.addToMultiList(current_row_number)
+                        counter += 1
+                        #print (book_nlx_154697_8_fma.cell_from_index(crow, value).lower(), book_nlx_154697_8_fma.cell_from_index(crow + 1, value).lower())
 
-book_temp1 = csv_book('/Users/love/git/troy_entity_mapping/entity_mapping/eids_exist.csv')
-book_temp2 = csv_book('/Users/love/git/troy_entity_mapping/entity_mapping/labels.csv')
-book_temp3 = csv_book('/Users/love/git/troy_entity_mapping/entity_mapping/synonyms.csv')
-book_temp4 = csv_book('/Users/love/git/troy_entity_mapping/entity_mapping/curator.csv')
-book_temp5 = csv_book('/Users/love/git/troy_entity_mapping/entity_mapping/abbrevs.csv')
-book_temp6 = csv_book('/Users/love/git/troy_entity_mapping/entity_mapping/search.csv')
-book_temp7 = csv_book('/Users/love/git/troy_entity_mapping/entity_mapping/acronyms.csv')
+        else:
+            if counter == 0:
+                print(book_nlx_154697_8_fma.cell_from_index(crow, value).lower(),
+                      book_nlx_154697_8_fma.cell_from_index(crow + 1, value).lower())
+                book_nlx_154697_8_fma.addToSingleList(current_row_number)
+            else:
+                book_nlx_154697_8_fma.addToMultiList(current_row_number)
+                counter == 0
 
-print(book_nlx_154697_8_fma.file_length)
-print(book_temp1.file_length)
-print(book_temp2.file_length)
-print(book_temp3.file_length)
-print(book_temp4.file_length)
-print(book_temp5.file_length)
-print(book_temp6.file_length)
-print(book_temp7.file_length)
-print(book_temp2.file_length + book_temp3.file_length + book_temp4.file_length + book_temp5.file_length + book_temp6.file_length + book_temp7.file_length)
+#book_nlx_154697_8_fma.printMultiMatch()
+book_nlx_154697_8_fma.makeCsvFromList()
+
+#book_temp1 = csv_book(folder + 'entity_mapping/no_eids.csv')
+book_temp1 = csv_book(folder + 'entity_mapping/search.csv')
+book_temp2 = csv_book(folder + 'entity_mapping/no_eid.csv')
+
+print(book_temp1.file_length + book_temp2.file_length) # good :)
