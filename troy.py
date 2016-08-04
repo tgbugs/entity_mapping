@@ -112,9 +112,9 @@ class csv_book():
     def printMultiMatch(self):
         print(self.provMultiList)
 
-    def makeCsvFromList(self):
+    def makeCsvFromList(self, csvFilename):
         for provTypes in self.provList:
-            with open (self.folder + 'entity_mapping/' + provTypes + '.csv', 'w') as file:
+            with open (self.folder + 'entity_mapping/' + provTypes + "_" + csvFilename + '.csv', 'w') as file:
                 wr = csv.writer(file)
                 if provTypes == 'search':
                     for rows in self.provSearchList:
@@ -168,11 +168,11 @@ def makeSortedCSVFiles(folder, csvFileName):
                     csvFile.addToSingleList(current_row_number)
 
     #csvFile.printMultiMatch()
-    csvFile.makeCsvFromList()
+    csvFile.makeCsvFromList(csvFileName)
 
     #book_temp1 = csv_book(folder + 'entity_mapping/no_eids.csv')
-    book_temp1 = csv_book(folder, folder + 'entity_mapping/search.csv')
-    book_temp2 = csv_book(folder, folder + 'entity_mapping/no_eid.csv')
+    book_temp1 = csv_book(folder, folder + 'entity_mapping/search_' + csvFileName + '.csv')
+    book_temp2 = csv_book(folder, folder + 'entity_mapping/no_eid_' + csvFileName + '.csv')
 
     print("checking lengths... ", csvFile.file_length - 1, book_temp1.file_length + book_temp2.file_length) # good :)
 
