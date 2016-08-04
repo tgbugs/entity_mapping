@@ -138,50 +138,38 @@ class csv_book():
 
 #source,table,column,value,input_value,candidate,identifier,fma_id,category,relation,prov,eid,ms,notes
 book_nlx_154697_8_fma = csv_book(folder + 'entity_mapping/mappings/nlx_154697_8_fma.csv')
-#id,mapped_label,mapped_identifier
-book_nif_0000_00508_5 = csv_book(folder + 'entity_mapping/mappings/nif_0000_00508_5')
-#
-book_coco_uber_match = csv_book(folder + 'entity_mapping/mappings/coco_uber_match.csv')
-#
-book_coco_uber_search = csv_book(folder + 'entity_mapping/mappings/coco_uber_search.csv')
-#
-book_uberon_nervous = csv_book(folder + 'entity_mapping/mappings/uberon-nervous')
 
 noeidList = []
-counter = 0
 
 """main"""
-for current_row_number in range(book_nlx_154697_8_fma.file_length):
+for current_row_number in range(book_nlx_154697_8_fma.file_length - 1):
+
     eid = book_nlx_154697_8_fma.cell_from_index(current_row_number, book_nlx_154697_8_fma.schema_location("eid"))
-    prov = book_nlx_154697_8_fma.cell_from_index(current_row_number, book_nlx_154697_8_fma.schema_location("prov"))
+
     if eid == None or len(eid) < 1:
         book_nlx_154697_8_fma.addToNoEidList(current_row_number)
 
     else:
         book_nlx_154697_8_fma.addToSearchList(current_row_number)
         source = book_nlx_154697_8_fma.schema_location("source")
-        table = book_nlx_154697_8_fma.schema_location("table")
-        column = book_nlx_154697_8_fma.schema_location("column")
         value = book_nlx_154697_8_fma.schema_location("value")
         crow = current_row_number
 
-        if book_nlx_154697_8_fma.cell_from_index(crow, source) == book_nlx_154697_8_fma.cell_from_index(crow + 1, source):
-            if book_nlx_154697_8_fma.cell_from_index(crow, table) == book_nlx_154697_8_fma.cell_from_index(crow + 1, table):
-                if book_nlx_154697_8_fma.cell_from_index(crow, column) == book_nlx_154697_8_fma.cell_from_index(crow + 1, column):
-                    #print (book_nlx_154697_8_fma.cell_from_index(crow, value).lower(), book_nlx_154697_8_fma.cell_from_index(crow + 1, value).lower())
-                    if book_nlx_154697_8_fma.cell_from_index(crow, value).lower().strip() == book_nlx_154697_8_fma.cell_from_index(crow + 1, value).lower().strip():
-                        book_nlx_154697_8_fma.addToMultiList(current_row_number)
-                        counter += 1
-                        #print (book_nlx_154697_8_fma.cell_from_index(crow, value).lower(), book_nlx_154697_8_fma.cell_from_index(crow + 1, value).lower())
-
-        else:
-            if counter == 0:
-                print(book_nlx_154697_8_fma.cell_from_index(crow, value).lower(),
-                      book_nlx_154697_8_fma.cell_from_index(crow + 1, value).lower())
-                book_nlx_154697_8_fma.addToSingleList(current_row_number)
-            else:
+        try:
+            if book_nlx_154697_8_fma.cell_from_index(crow, value).lower().strip() == book_nlx_154697_8_fma.cell_from_index(crow + 1, value).lower().strip():
                 book_nlx_154697_8_fma.addToMultiList(current_row_number)
-                counter == 0
+                #print(book_nlx_154697_8_fma.cell_from_index(crow, value), book_nlx_154697_8_fma.cell_from_index(crow, value))
+            else:
+                if book_nlx_154697_8_fma.cell_from_index(crow, value).lower().split() == book_nlx_154697_8_fma.cell_from_index(crow - 1, value).lower().split():
+                    book_nlx_154697_8_fma.addToMultiList(current_row_number)
+                else:
+                    book_nlx_154697_8_fma.addToSingleList(current_row_number)
+                    #print(book_nlx_154697_8_fma.cell_from_index(crow, value).lower().split(), book_nlx_154697_8_fma.cell_from_index(crow + 1, value).lower().split())
+        except:
+            if book_nlx_154697_8_fma.cell_from_index(crow, value).lower().strip() == book_nlx_154697_8_fma.cell_from_index(crow + 1, value).lower().strip():
+                book_nlx_154697_8_fma.addToMultiList(current_row_number)
+            else:
+                book_nlx_154697_8_fma.addToSingleList(current_row_number)
 
 #book_nlx_154697_8_fma.printMultiMatch()
 book_nlx_154697_8_fma.makeCsvFromList()
