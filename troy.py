@@ -1,24 +1,20 @@
 import csv
-import json
-import matplotlib
-import mappings
-import numpy
 
 """
     X 1) curator level of prov with no eid match //organize
     X 2) search level of prov //actually search prov
-    3) mapping exists (eid) OR single match for labels, syns, acros, abbrevs
-    4) multiple match for labels, syns, acros, abbrevs
+    X 3) mapping exists (eid) OR single match for labels, syns, acros, abbrevs
+    X 4) multiple match for labels, syns, acros, abbrevs
 """
 
 """
     Organizes a csv file to extract data easily
 """
 
-folder = '/Users/love/git/troy_entity_mapping/'
+#folder = '/Users/love/git/troy_entity_mapping/'
 class csv_book():
 
-    def __init__(self, filename):
+    def __init__(self, folder, filename):
         # parses the csv file into a list of rows
         def open_with_csv(filename):
             with open(filename, 'r') as tsvin:
@@ -44,6 +40,7 @@ class csv_book():
                     double_dict[row_location][column_location]=cells
             return single_dict, double_dict, file_length
 
+        self.folder = folder
         self.filename = filename
         self.rows, self.data, self.file_length = data_dict()
         self.schema = {
@@ -87,7 +84,7 @@ class csv_book():
         return self.data[row][schema_location]
 
     def makeCsv(self, newFileName,raw_rows):
-        with open (folder + 'entity_mapping/' + newFileName + '.csv', 'w') as file:
+        with open (self.folder + 'entity_mapping/' + newFileName + '.csv', 'w') as file:
             wr = csv.writer(file)
             for rows in raw_rows:
                 wr.writerow(rows)
@@ -117,7 +114,7 @@ class csv_book():
 
     def makeCsvFromList(self):
         for provTypes in self.provList:
-            with open (folder + 'entity_mapping/' + provTypes + '.csv', 'w') as file:
+            with open (self.folder + 'entity_mapping/' + provTypes + '.csv', 'w') as file:
                 wr = csv.writer(file)
                 if provTypes == 'search':
                     for rows in self.provSearchList:
@@ -136,46 +133,47 @@ class csv_book():
                     break
             print ("done making", provTypes+".csv file")
 
-#source,table,column,value,input_value,candidate,identifier,fma_id,category,relation,prov,eid,ms,notes
-book_nlx_154697_8_fma = csv_book(folder + 'entity_mapping/mappings/nlx_154697_8_fma.csv')
 
-noeidList = []
+def makeSortedCSVFiles(folder, csvFileName):
+    #source,table,column,value,input_value,candidate,identifier,fma_id,category,relation,prov,eid,ms,notes
+    csvFile = csv_book(folder, folder + 'entity_mapping/mappings/' + csvFileName + '.csv')
 
-"""main"""
-for current_row_number in range(book_nlx_154697_8_fma.file_length - 1):
+    """main"""
+    for current_row_number in range(csvFile.file_length - 1):
 
-    eid = book_nlx_154697_8_fma.cell_from_index(current_row_number, book_nlx_154697_8_fma.schema_location("eid"))
+        eid = csvFile.cell_from_index(current_row_number, csvFile.schema_location("eid"))
 
-    if eid == None or len(eid) < 1:
-        book_nlx_154697_8_fma.addToNoEidList(current_row_number)
+        if eid == None or len(eid) < 1:
+            csvFile.addToNoEidList(current_row_number)
 
-    else:
-        book_nlx_154697_8_fma.addToSearchList(current_row_number)
-        source = book_nlx_154697_8_fma.schema_location("source")
-        value = book_nlx_154697_8_fma.schema_location("value")
-        crow = current_row_number
+        else:
+            csvFile.addToSearchList(current_row_number)
+            value = csvFile.schema_location("value")
+            crow = current_row_number
 
-        try:
-            if book_nlx_154697_8_fma.cell_from_index(crow, value).lower().strip() == book_nlx_154697_8_fma.cell_from_index(crow + 1, value).lower().strip():
-                book_nlx_154697_8_fma.addToMultiList(current_row_number)
-                #print(book_nlx_154697_8_fma.cell_from_index(crow, value), book_nlx_154697_8_fma.cell_from_index(crow, value))
-            else:
-                if book_nlx_154697_8_fma.cell_from_index(crow, value).lower().split() == book_nlx_154697_8_fma.cell_from_index(crow - 1, value).lower().split():
-                    book_nlx_154697_8_fma.addToMultiList(current_row_number)
+            try:
+                if csvFile.cell_from_index(crow, value).lower().strip() == csvFile.cell_from_index(crow + 1, value).lower().strip():
+                    csvFile.addToMultiList(current_row_number)
+                    #print(csvFile.cell_from_index(crow, value), csvFile.cell_from_index(crow, value))
                 else:
-                    book_nlx_154697_8_fma.addToSingleList(current_row_number)
-                    #print(book_nlx_154697_8_fma.cell_from_index(crow, value).lower().split(), book_nlx_154697_8_fma.cell_from_index(crow + 1, value).lower().split())
-        except:
-            if book_nlx_154697_8_fma.cell_from_index(crow, value).lower().strip() == book_nlx_154697_8_fma.cell_from_index(crow + 1, value).lower().strip():
-                book_nlx_154697_8_fma.addToMultiList(current_row_number)
-            else:
-                book_nlx_154697_8_fma.addToSingleList(current_row_number)
+                    if csvFile.cell_from_index(crow, value).lower().split() == csvFile.cell_from_index(crow - 1, value).lower().split():
+                        csvFile.addToMultiList(current_row_number)
+                    else:
+                        csvFile.addToSingleList(current_row_number)
+                        #print(csvFile.cell_from_index(crow, value).lower().split(), csvFile.cell_from_index(crow + 1, value).lower().split())
+            except:
+                if csvFile.cell_from_index(crow, value).lower().strip() == csvFile.cell_from_index(crow + 1, value).lower().strip():
+                    csvFile.addToMultiList(current_row_number)
+                else:
+                    csvFile.addToSingleList(current_row_number)
 
-#book_nlx_154697_8_fma.printMultiMatch()
-book_nlx_154697_8_fma.makeCsvFromList()
+    #csvFile.printMultiMatch()
+    csvFile.makeCsvFromList()
 
-#book_temp1 = csv_book(folder + 'entity_mapping/no_eids.csv')
-book_temp1 = csv_book(folder + 'entity_mapping/search.csv')
-book_temp2 = csv_book(folder + 'entity_mapping/no_eid.csv')
+    #book_temp1 = csv_book(folder + 'entity_mapping/no_eids.csv')
+    book_temp1 = csv_book(folder, folder + 'entity_mapping/search.csv')
+    book_temp2 = csv_book(folder, folder + 'entity_mapping/no_eid.csv')
 
-print(book_temp1.file_length + book_temp2.file_length) # good :)
+    print("checking lengths... ", csvFile.file_length - 1, book_temp1.file_length + book_temp2.file_length) # good :)
+
+#makeSortedCSVFiles(folder, "nlx_154697_8_fma")
