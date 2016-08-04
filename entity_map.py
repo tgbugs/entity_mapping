@@ -28,6 +28,7 @@ from IPython import embed
 from heatmaps.services import database_service
 from pyontutils.scigraph_client import Refine, Vocabulary
 from exclude import exclude_table_prefixes, exclude_tables, exclude_columns
+import troy
 
 v = Vocabulary()#'http://localhost:9000/scigraph')#quiet=False)
 #hfdsoiodvrewfvvrvdr
@@ -77,6 +78,7 @@ prov_functions = {
     'curator':(lambda term, **args: None, {}),
 }
 def noop(term, **kwargs): return None
+
 _prov_functions = {
     'labels':(noop, {'searchSynonyms':False}),
     'synonyms':(noop, {}),
@@ -496,11 +498,15 @@ def make_csvs(ids, view_ids=None, reup=False, remap=False):
 
         # troy code goes here
         # filter rows into 4 spreadsheets
-        #   1) curator level of prov with no eid match
-        #   2) search level of prov
-        #   3) multiple match for labels, syns, acros, abbrevs
-        #   4) mapping exists (eid) OR single match for labels, syns, acros, abbrevs
+        #   1) curator level of prov with no eid match //organize
+        #   2) search level of prov //actually search prov
+        #   3) mapping exists (eid) OR single match for labels, syns, acros, abbrevs
+        #   4) multiple match for labels, syns, acros, abbrevs
         # test on nif_0000_00006, list of ids is in source_ids
+        # troy.csv_book()
+
+        #FIXME need to fill this in
+        #troy.makeSortedCSVFiles(path, "filename")
 
         with open('/tmp/%s.csv' % source, 'wt') as f:  # FIXME
             print('building csv for', source)
