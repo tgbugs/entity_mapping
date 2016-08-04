@@ -5,6 +5,8 @@ import csv
     X 2) search level of prov //actually search prov
     X 3) mapping exists (eid) OR single match for labels, syns, acros, abbrevs
     X 4) multiple match for labels, syns, acros, abbrevs
+    5) some rows are out of order. make a second pass through the csv files created and pull out the remaining
+        multi matches.
 """
 
 """
@@ -173,7 +175,7 @@ def makeSortedCSVFiles(folder, csvFileName):
     #book_temp1 = csv_book(folder + 'entity_mapping/no_eids.csv')
     book_temp1 = csv_book(folder, folder + 'entity_mapping/search_' + csvFileName + '.csv')
     book_temp2 = csv_book(folder, folder + 'entity_mapping/no_eid_' + csvFileName + '.csv')
-
-    print("checking lengths... ", csvFile.file_length - 1, book_temp1.file_length + book_temp2.file_length) # good :)
+    print("checking lengths of no_eid + multi + single/ied vs ori... ", csvFile.file_length - 1, 934 + book_temp2.file_length)
+    print("checking lengths of no_eid + search vs ori... ", csvFile.file_length - 1, book_temp1.file_length + book_temp2.file_length) # good :)
 
 #makeSortedCSVFiles(folder, "nlx_154697_8_fma")
