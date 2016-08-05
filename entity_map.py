@@ -505,8 +505,8 @@ def make_csvs(ids, view_ids=None, reup=False, remap=False):
         # test on nif_0000_00006, list of ids is in source_ids
         # troy.csv_book()
 
-        #FIXME need to fill this in
-        #troy.makeSortedCSVFiles(path, "filename")
+        #troys_path = '/Users/love/git/troy_entity_mapping/'
+        #troy.makeSortedCSVFiles(troys_path, rows)
 
         with open('/tmp/%s.csv' % source, 'wt') as f:  # FIXME
             print('building csv for', source)
