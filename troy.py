@@ -120,7 +120,7 @@ class csv_book():
 
     def secondPassForSingle(self, value):
         for row_number, row in list(enumerate(self.provSingleList)):
-            if value == row[self.schema_location("value")]:
+            if value == row[self.schema_location("value")].lower().split():
                 self.provSingleList.remove(row)
                 return row
         return None
@@ -191,7 +191,7 @@ def makeSortedCSVFiles(path, rows):
                     if csvFile.cell_from_index(crow, value).lower().split() == csvFile.cell_from_index(crow - 1, value).lower().split():
                         csvFile.addToMultiList(current_row_number)
                     else:
-                        test = csvFile.secondPassForSingle(value)
+                        test = csvFile.secondPassForSingle(csvFile.cell_from_index(crow, value).lower().split())
                         if test != None:
                             csvFile.addToMultiList(current_row_number)
                             csvFile.addToMultiList(test)
