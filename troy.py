@@ -50,7 +50,7 @@ class csv_book():
         # self.filename = filename # for upload csv
         self.rows, self.data, self.file_length = data_dict(rows)
         self.schema = {
-            'source':0, 'table':1, 'column':2, 'value':2,  # loop variables
+            'source':0, 'table':1, 'column':2, 'value':3,  # loop variables
             'input_value':4, 'candidate':5, 'identifier':6, 'category':7, 'relation':8,
             'prov':9, 'eid':10, 'ms':11, 'notes':12 # eid => existing id,
         }
@@ -65,7 +65,7 @@ class csv_book():
 
     """just the header identifiers"""
     def schema_location(self, schemas):
-        return self.schema[schemas] + 1
+        return self.schema[schemas]
 
     def schema(self):
         csv_schema = (
@@ -172,7 +172,7 @@ def makeSortedCSVFiles(path, rows):
 
     """main"""
     for current_row_number in range(csvFile.file_length - 1):
-
+        print(current_row_number)
         eid = csvFile.cell_from_index(current_row_number, csvFile.schema_location("eid"))
 
         if eid == None or len(eid) < 1:
@@ -215,7 +215,7 @@ def makeSortedCSVFiles(path, rows):
 
     print("checking lengths of no_eid + multi + single/ied vs ori... ", csvFile.file_length - 1, no_eid_length + multi_match_length + one_match_or_has_eid_length)
     print("checking lengths of no_eid + search vs ori... ", csvFile.file_length - 1, no_eid_length + search_length) # good :)
-
+"""
 with open('/Users/love/git/troy_entity_mapping/entity_mapping/mappings/nlx_154697_8_fma.csv', 'r') as file:
     reader = csv.reader(file)
     rows = []
@@ -226,3 +226,4 @@ with open('/Users/love/git/troy_entity_mapping/entity_mapping/mappings/nlx_15469
             rows.append(row)
 makeSortedCSVFiles(folder, rows)
 
+"""
