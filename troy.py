@@ -172,7 +172,7 @@ def makeSortedCSVFiles(path, rows):
 
     """main"""
     for current_row_number in range(csvFile.file_length - 1):
-        print(current_row_number)
+
         eid = csvFile.cell_from_index(current_row_number, csvFile.schema_location("eid"))
 
         if eid == None or len(eid) < 1:
@@ -181,6 +181,7 @@ def makeSortedCSVFiles(path, rows):
         else:
             csvFile.addToSearchList(current_row_number)
             value = csvFile.schema_location("value")
+            print(value)
             crow = current_row_number
 
             try:
