@@ -181,7 +181,6 @@ def makeSortedCSVFiles(path, rows):
         else:
             csvFile.addToSearchList(current_row_number)
             value = csvFile.schema_location("value")
-            print(value)
             crow = current_row_number
 
             try:
