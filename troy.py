@@ -38,6 +38,8 @@ class csv_book():
             single_dict = {}
             file_length = 0
             #for row_location, row in list(enumerate(open_with_csv(filename))):
+            for row in rows:
+                del row[6]
             for row_location, row in list(enumerate(rows)):
                 file_length += 1
                 single_dict[row_location] = row
@@ -58,6 +60,7 @@ class csv_book():
         self.provSingleList = []
         self.provSearchList = []
         self.provNoEidList = []
+        self.demoList = []
         self.provList = ['no_eid', 'search', 'one_match_or_has_eid', 'multi_match']
 
     def csv_row(self, row_location):
@@ -121,9 +124,30 @@ class csv_book():
     def secondPassForSingle(self, value):
         for row_number, row in list(enumerate(self.provSingleList)):
             if value == row[self.schema_location("value")].lower().split():
-                self.provSingleList.remove(row)
+                self.demoList.append(row)
                 return row
         return None
+
+    def demoExtra(self):
+        dict_a = {}
+        deleteList = []
+        val_loc = self.schema_location("value")
+        for rows in self.provSingleList:
+            if rows[val_loc].lower() in dict_a:
+                dict_a[rows[val_loc].lower()] += 1
+            else:
+                dict_a[rows[val_loc].lower()] = 0
+
+        for rows in self.provSingleList:
+            if dict_a[rows[val_loc].lower()] != 0:
+                self.provMultiList.append(rows)
+                deleteList.append(rows)
+            else:
+                pass
+
+        for i in deleteList:
+            if i in self.provSingleList:
+                self.provSingleList.remove(i)
 
     def openMyCsvs(self, provType, id):
         path = self.folder + 'entity_mapping/' + provType + "_" + id + '.csv'
@@ -139,11 +163,10 @@ class csv_book():
                     rows.append(row)
         return rows, fileLength
 
-
-
     def makeCsvFromList(self, id):
         for provTypes in self.provList:
             path = self.folder + 'entity_mapping/' + provTypes + "_" + id + '.csv'
+            #path = '/Users/love/Desktop/' + provTypes + "_" + id + '.csv'
             with open (path, 'w') as file:
                 wr = csv.writer(file)
                 if provTypes == 'search':
@@ -161,10 +184,63 @@ class csv_book():
                 else:
                     print("Something went wrong making ", provTypes)
                     break
-            print ("done making", provTypes+".csv file")
+            #print ("done making", provTypes+".csv file")
+
+    #tests the logic of the code
+    def tester(self, id):
+        for provTypes in self.provList:
+            path = self.folder + 'entity_mapping/' + provTypes + "_" + id + '.csv'
+            listChecker = []
+            with open (path, 'r') as file:
+                r = csv.reader(file)
+                if provTypes == 'search':
+                    for rows in self.provSearchList:
+                        if rows[self.schema_location("eid")] == None:
+                            print(provTypes, "is bad")
+                            break
+                        else : listChecker.append([rows[self.schema_location("eid")]])
+                elif provTypes == 'no_eid':
+                    for rows in self.provNoEidList:
+                        if rows[self.schema_location("eid")] != "" :
+                            print(provTypes, "is bad")
+                            break
+                        else : pass
+                elif provTypes == 'one_match_or_has_eid':
+                    dict_a = {}
+                    val_loc = self.schema_location("value")
+                    for rows in self.provSingleList:
+                        if rows[val_loc].lower() in dict_a:
+                            dict_a[rows[val_loc].lower()] += 1
+                        else : dict_a[rows[val_loc].lower()] = 0
+                    for rows in self.provSingleList:
+                        if dict_a[rows[val_loc].lower()] != 0:
+                            print(provTypes, "is bad and it stopped at", rows[val_loc].lower())
+                            break
+                        else : pass
+                        #print(dict_a[rows[val_loc].lower()])
+                elif provTypes == 'multi_match':
+                    dict_a = {}
+                    val_loc = self.schema_location("value")
+                    for rows in self.provMultiList:
+                        if rows[val_loc].lower() in dict_a:
+                            dict_a[rows[val_loc].lower()] += 1
+                        else : dict_a[rows[val_loc].lower()] = 0
+
+                    for rows in self.provMultiList:
+                        if dict_a[rows[val_loc].lower()] == 0:
+                            print(provTypes, "is bad and it stopped at", rows[val_loc].lower())
+                            break
+                        else : pass
+                else:
+                    print("Something went wrong making csv for ", provTypes)
+                    break
+            #print (provTypes + "_" + id + '.csv is good!')
+
+
 
 
 def makeSortedCSVFiles(path, rows):
+    #THESE ARE FOR CSV FILE DIRECT UPLOADS
     #source,table,column,value,input_value,candidate,identifier,fma_id,category,relation,prov,eid,ms,notes
     #csvFile = csv_book(folder, folder + 'entity_mapping/mappings/' + csvFileName + '.csv') #For csv upload
 
@@ -186,36 +262,51 @@ def makeSortedCSVFiles(path, rows):
             try:
                 if csvFile.cell_from_index(crow, value).lower().strip() == csvFile.cell_from_index(crow + 1, value).lower().strip():
                     csvFile.addToMultiList(current_row_number)
-                    #print(csvFile.cell_from_index(crow, value), csvFile.cell_from_index(crow, value))
+                    if "anterior amygdaloid area" == csvFile.cell_from_index(crow, value):
+                        print("\n1\n")
                 else:
                     if csvFile.cell_from_index(crow, value).lower().split() == csvFile.cell_from_index(crow - 1, value).lower().split():
                         csvFile.addToMultiList(current_row_number)
+                        if "anterior amygdaloid area" == csvFile.cell_from_index(crow, value):
+                            print("\n2\n")
                     else:
-                        test = csvFile.secondPassForSingle(csvFile.cell_from_index(crow, value).lower().split())
-                        if test != None:
-                            csvFile.addToMultiList(current_row_number)
-                            csvFile.addToMultiList(test)
-                        else:
-                            csvFile.addToSingleList(current_row_number)
+                        #test = csvFile.secondPassForSingle(csvFile.cell_from_index(crow, value).lower().split())
+                        #if test != None:
+                        #    csvFile.addToMultiList(current_row_number)
+                        #    if "anterior amygdaloid area" == csvFile.cell_from_index(crow, value):
+                        #        print("\n3\n")
+                        #    csvFile.addToMultiList(test)
+                        #else:
+                        csvFile.addToSingleList(current_row_number)
                         #print(csvFile.cell_from_index(crow, value).lower().split(), csvFile.cell_from_index(crow + 1, value).lower().split())
             except:
                 if csvFile.cell_from_index(crow, value).lower().strip() == csvFile.cell_from_index(crow + 1, value).lower().strip():
                     csvFile.addToMultiList(current_row_number)
+                    if "anterior amygdaloid area" == csvFile.cell_from_index(crow, value):
+                        print("\n4\n")
                 else:
                     csvFile.addToSingleList(current_row_number)
 
+    csvFile.demoExtra()
     csvFile.makeCsvFromList(csvFile.cell_from_index(1, csvFile.schema_location("source")))
 
-    #book_temp1 = csv_book(folder + 'entity_mapping/no_eids.csv')
-    #provtypes = ['no_eid', 'search', 'one_match_or_has_eid', 'multi_match']
+
+    #length tester
     no_eid, no_eid_length = csvFile.openMyCsvs("no_eid", csvFile.cell_from_index(1, csvFile.schema_location("source")))
     search, search_length = csvFile.openMyCsvs("search", csvFile.cell_from_index(1, csvFile.schema_location("source")))
     one_match_or_has_eid, one_match_or_has_eid_length = csvFile.openMyCsvs("one_match_or_has_eid", csvFile.cell_from_index(1, csvFile.schema_location("source")))
     multi_match, multi_match_length = csvFile.openMyCsvs("multi_match", csvFile.cell_from_index(1, csvFile.schema_location("source")))
 
-    print("checking lengths of no_eid + multi + single/ied vs ori... ", csvFile.file_length - 1, no_eid_length + multi_match_length + one_match_or_has_eid_length)
-    print("checking lengths of no_eid + search vs ori... ", csvFile.file_length - 1, no_eid_length + search_length) # good :)
+    #forther tests that aren't neccessary to show
+    #print("checking lengths of no_eid + multi + single/ied vs ori... ", csvFile.file_length - 1, no_eid_length + multi_match_length + one_match_or_has_eid_length)
+    #print("checking lengths of no_eid + search vs ori... ", csvFile.file_length - 1, no_eid_length + search_length) # good :)
+
+    #logic tester
+    csvFile.tester(csvFile.cell_from_index(1, csvFile.schema_location("source")))
+
+
 """
+#For checking code locally
 with open('/Users/love/git/troy_entity_mapping/entity_mapping/mappings/nlx_154697_8_fma.csv', 'r') as file:
     reader = csv.reader(file)
     rows = []
@@ -224,6 +315,6 @@ with open('/Users/love/git/troy_entity_mapping/entity_mapping/mappings/nlx_15469
             pass
         else:
             rows.append(row)
-makeSortedCSVFiles(folder, rows)
 
+makeSortedCSVFiles(folder, rows)
 """
