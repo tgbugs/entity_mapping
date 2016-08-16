@@ -5,7 +5,7 @@ import csv
     X 2) search level of prov //actually search prov
     X 3) mapping exists (eid) OR single match for labels, syns, acros, abbrevs
     X 4) multiple match for labels, syns, acros, abbrevs
-    5) some rows are out of order. make a second pass through the csv files created and pull out the remaining
+    X 5) some rows are out of order. make a second pass through the csv files created and pull out the remaining
         multi matches.
 """
 
