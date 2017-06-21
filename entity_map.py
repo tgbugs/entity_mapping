@@ -30,7 +30,7 @@ from pyontutils.scigraph_client import Refine, Vocabulary
 from exclude import exclude_table_prefixes, exclude_tables, exclude_columns
 import troy
 
-v = Vocabulary()#'http://localhost:9000/scigraph')#quiet=False)
+v = Vocabulary('http://localhost:9000/scigraph')#quiet=False)
 #hfdsoiodvrewfvvrvdr
 class discodv(database_service):
     dbname = 'disco_crawler'
@@ -103,7 +103,7 @@ pre_processing_funcs = {  # needs to return a list
 }
 
 external_id_map = {
-    'l2_nlx_151885_data_summary':('n_name', 'nelx_id'),
+    'l2_nlx_151885_data_summary':('n_name', 'n_nelx_id'),
     'l2_nlx_151885_data_neuron':('name', 'nelx_id'),
     'l2_nif_0000_37639_onto_label':('name', 'onto_id'),
     'dv.nlx_154697_8':('con_from','con_from_id'),
@@ -389,7 +389,11 @@ def expand_map_value(column, value, split=False, existing_prov=None, skip=(), co
                     continue  # don't include results with category mismatch
 
                 candidate = record['labels'][0]  # FIXME
-                identifier = record['curie']
+                try:
+                    identifier = record['curie']
+                except KeyError as e:
+                    print(record)
+                    raise e
                 if not identifier:
                     no_curies.add(candidate)  # subjectless labels for culling!
                     dedupe = False
